@@ -1,0 +1,30 @@
+Supabase va loyiha ulanishi — qisqa yo‘riqnoma (O‘zbek)
+
+1) Supabase loyihangizda migratsiyalar
+   - Dashboard → SQL Editor
+   - Fayllarni TARTIB bilan ishga tushiring: medical_app/supabase/migrations/
+     001_initial.sql, 002_..., ... 015_user_ranks_backfill_from_video.sql
+   - Har birini alohida “Run” qiling (yoki birlashtirib, lekin tartib buzilmasin).
+
+   Alternativa: kompyuteringizda Supabase CLI o‘rnatsangiz:
+   supabase login
+   supabase link --project-ref YOUR_PROJECT_REF
+   supabase db push
+
+2) Backend (FastAPI / Render)
+   - backend/fastapi/.env.example ni ko‘rib, backend/fastapi/.env yarating.
+   - SUPABASE_URL va SUPABASE_SERVICE_ROLE_KEY — Supabase → Settings → API.
+   - SERVICE ROLE kalitni faqat serverda saqlang; GitHub / mobil ilovaga bermang.
+
+3) Admin panel (Next.js)
+   - admin_panel/.env.example → admin_panel/.env.local
+   - NEXT_PUBLIC_SUPABASE_URL va anon kalit — xuddi shu API sahifadan.
+   - NEXT_PUBLIC_API_BASE_URL — production FastAPI manzilingiz (.../api/v1).
+
+4) Flutter (mobil)
+   - API_BASE_URL va kerak bo‘lsa SUPABASE_URL / SUPABASE_ANON_KEY —
+     flutter build/run da --dart-define bilan beriladi (loyihadagi api_config / realtime ga qarang).
+
+5) Xavfsizlik
+   - Agar .env ilgari Git ga tushgan bo‘lsa: Supabase da service_role kalitni ROTATE qiling,
+     ADMIN_API_KEY ni ham yangilang va Render / .env.local da yangilang.

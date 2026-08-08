@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: medical-backend
+    runtime: python
+    rootDir: backend/fastapi
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # Neon (toza Postgres) ulanish satri — Supabase o'rniga
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: ADMIN_USER_ID
+        sync: false
+      - key: ADMIN_CONTACT_TELEGRAM
+        sync: false
+      # Cloudflare R2 (fayl yuklash — admin panel upload uchun)
+      - key: R2_ENDPOINT_URL
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_BASE_URL
+        sync: false
