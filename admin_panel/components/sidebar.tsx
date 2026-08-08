@@ -8,10 +8,8 @@ import {
   BookText,
   FileQuestion,
   House,
-  MessageSquareText,
   PanelsTopLeft,
   PlayCircle,
-  Shield,
   ShoppingCart,
   Sparkles,
   Users,
@@ -25,8 +23,6 @@ const navItems = [
   { href: "/courses", label: "Kurslar", icon: BookOpen },
   { href: "/lessons", label: "Darslar", icon: PlayCircle },
   { href: "/users", label: "Foydalanuvchilar", icon: Users },
-  { href: "/comments", label: "Izohlar", icon: MessageSquareText },
-  { href: "/ratings", label: "Baholar", icon: Shield },
   { href: "/purchases", label: "Xaridlar", icon: ShoppingCart },
   { href: "/home-banners", label: "Bosh sahifa slaydi", icon: PanelsTopLeft },
   { href: "/ads", label: "Reklamalar", icon: Sparkles },
@@ -88,7 +84,7 @@ function SidebarContent({ pathname, onNavigate }: SidebarContentProps) {
     <>
       <div className="mb-8 border-b border-slate-100 pb-4">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-          Ta&apos;lim Platformasi
+          Medicine:SBS
         </p>
         <h2 className="mt-2 text-xl font-semibold text-slate-900">Boshqaruv paneli</h2>
       </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, House, Menu, MessageSquareText, Users } from "lucide-react";
+import { BookOpen, House, Menu, ShoppingCart, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -20,10 +20,10 @@ const items = [
     match: (p: string) => p === "/users" || p.startsWith("/users/"),
   },
   {
-    href: "/comments",
-    label: "Izohlar",
-    icon: MessageSquareText,
-    match: (p: string) => p === "/comments" || p.startsWith("/comments/"),
+    href: "/purchases",
+    label: "Xaridlar",
+    icon: ShoppingCart,
+    match: (p: string) => p === "/purchases" || p.startsWith("/purchases/"),
   },
 ];
 
