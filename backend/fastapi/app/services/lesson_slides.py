@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from postgrest.exceptions import APIError
+import psycopg
 from ..neon_client import Client
 
 from ..schemas.lesson_slides import LessonSlideCreate, LessonSlideItem, LessonSlideUpdate
@@ -66,11 +66,9 @@ def create_lesson_slide(client: Client, payload: LessonSlideCreate) -> LessonSli
             if not row:
                 raise RuntimeError("Failed to create lesson slide.")
             return _to_item(row)
-        except APIError as error:
-            if error.code == "23505":
-                order_no = _next_order_no(client, lesson_id=payload.lesson_id)
-                continue
-            raise
+        except psycopg.errors.UniqueViolation:
+            order_no = _next_order_no(client, lesson_id=payload.lesson_id)
+            continue
     raise RuntimeError("Slayd qo'shishda order_no band bo'lib qoldi. Qayta urinib ko'ring.")
 
 

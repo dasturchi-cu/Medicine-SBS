@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from postgrest.exceptions import APIError
+import psycopg
 from ..neon_client import Client
 
 from ..schemas.slides import SlideCreate, SlideItem, SlideUpdate
@@ -73,11 +73,9 @@ def create_slide(client: Client, payload: SlideCreate) -> SlideItem:
             if not item:
                 raise RuntimeError("Failed to create slide.")
             return _to_item(item)
-        except APIError as error:
-            if error.code == "23505":
-                order_no = next_order_no()
-                continue
-            raise
+        except psycopg.errors.UniqueViolation:
+            order_no = next_order_no()
+            continue
     raise RuntimeError("Home reklama tartib raqami band. Qayta urinib ko'ring.")
 
 
