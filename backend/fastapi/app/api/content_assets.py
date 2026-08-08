@@ -71,6 +71,11 @@ async def upload_file(
         )
     except RuntimeError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error))
+    except Exception as error:  # noqa: BLE001 — R2/boto3 xatosini foydalanuvchiga ko'rsatamiz
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"R2 upload xatosi: {type(error).__name__}: {error}",
+        )
     return {"path": result["path"], "publicUrl": result["url"], "storageBacked": True}
 
 
