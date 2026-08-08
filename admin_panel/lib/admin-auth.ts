@@ -1,8 +1,8 @@
 export const ADMIN_AUTH_STORAGE_KEY = "admin_auth_v1";
 export const ADMIN_PHONE_PREFIX = "+998";
-export const ADMIN_PHONE_SUFFIX = "77 777 77 77";
-export const ADMIN_PHONE_FULL = "+998777777777";
-export const ADMIN_PASSWORD = "123456";
+export const ADMIN_PHONE_SUFFIX = "90 000 00 00";
+export const ADMIN_PHONE_FULL = "+998900000000";
+export const ADMIN_PASSWORD = "Medicine2026";
 
 export function normalizePhone(phone: string) {
   return phone.replace(/\D/g, "");

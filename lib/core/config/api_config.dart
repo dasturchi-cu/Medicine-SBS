@@ -8,7 +8,7 @@ String getApiBaseUrl() {
   if (Platform.isAndroid) {
     const lanDefault = String.fromEnvironment(
       'API_BASE_URL_LAN',
-      defaultValue: 'https://neuroscience-app.onrender.com',
+      defaultValue: 'https://medicine-sbs.onrender.com',
     );
     return _normalizeBaseUrl(lanDefault);
   }
