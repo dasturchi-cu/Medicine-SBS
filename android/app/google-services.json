@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "288949029713",
-    "project_id": "neurosciense-9d6bc",
-    "storage_bucket": "neurosciense-9d6bc.firebasestorage.app"
+    "project_number": "591722198488",
+    "project_id": "medicine-de76e",
+    "storage_bucket": "medicine-de76e.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:288949029713:android:0c6b1ee2a29a8663652170",
+        "mobilesdk_app_id": "1:591722198488:android:66f0cba15a3539e4f4eead",
         "android_client_info": {
-          "package_name": "com.example.medical_app"
+          "package_name": "uz.medicine.sbs"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB5pGQchiOnyUwFwNKCox1D1IqdpJVjw6U"
+          "current_key": "AIzaSyBmCYZY5_UTHjhI7XloUe2Cx-VaLK1tGCY"
         }
       ],
       "services": {
