@@ -73,6 +73,9 @@ export function DownloadClient() {
 
   useEffect(() => {
     void load();
+    // Real-time'ga yaqin: har 15 soniyada baho va izohlar avtomatik yangilanadi.
+    const timer = setInterval(() => void load(), 15000);
+    return () => clearInterval(timer);
   }, [load]);
 
   async function submit() {
