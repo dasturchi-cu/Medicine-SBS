@@ -10,7 +10,12 @@ router = APIRouter(prefix="/ranking", tags=["ranking"])
 @router.post("/study", status_code=status.HTTP_204_NO_CONTENT)
 def post_study(payload: StudyRecordRequest):
     """Pomodoro/o'qish vaqtini reytingga qo'shadi."""
-    record_study_seconds(get_supabase_client(), user_id=payload.user_id, seconds=payload.seconds)
+    record_study_seconds(
+        get_supabase_client(),
+        user_id=payload.user_id,
+        seconds=payload.seconds,
+        source=payload.source,
+    )
 
 
 @router.get("", response_model=RankingResponse)
@@ -20,7 +25,8 @@ def get_ranking(
         default="overall",
         pattern="^(daily|weekly|monthly|yearly|overall)$",
     ),
+    source: str | None = Query(default=None, pattern="^(video|pomodoro)$"),
 ):
     return RankingResponse(
-        items=list_ranking(get_supabase_client(), limit=limit, period=period)
+        items=list_ranking(get_supabase_client(), limit=limit, period=period, source=source)
     )

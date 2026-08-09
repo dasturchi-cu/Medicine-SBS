@@ -77,20 +77,22 @@ def _period_start(period: str) -> date | None:
     return None
 
 
-def record_study_seconds(client: Client, *, user_id: str, seconds: int) -> None:
-    """Pomodoro/o'qish vaqtini daily_study_log'ga qo'shadi (kunlik reyting uchun)."""
+def record_study_seconds(client: Client, *, user_id: str, seconds: int, source: str = "video") -> None:
+    """O'qish vaqtini daily_study_log'ga qo'shadi. source: 'video' yoki 'pomodoro'."""
     if seconds <= 0:
         return
     client.table("daily_study_log").insert(
-        {"user_id": user_id, "seconds": int(seconds)}
+        {"user_id": user_id, "seconds": int(seconds), "source": source}
     ).execute()
 
 
-def _list_ranking_period(client: Client, *, since: date, limit: int) -> list[RankingItem]:
-    resp = client.rpc(
-        "ranking_by_period",
-        {"p_since": since.isoformat(), "p_limit": limit},
-    ).execute()
+def _list_ranking_period(
+    client: Client, *, since: date, limit: int, source: str | None = None
+) -> list[RankingItem]:
+    params: dict[str, Any] = {"p_since": since.isoformat(), "p_limit": limit}
+    if source:
+        params["p_source"] = source
+    resp = client.rpc("ranking_by_period", params).execute()
     rows = resp.data or []
     items: list[RankingItem] = []
     for row in rows:
@@ -108,11 +110,13 @@ def _list_ranking_period(client: Client, *, since: date, limit: int) -> list[Ran
     return items
 
 
-def list_ranking(client: Client, *, limit: int = 50, period: str = "overall") -> list[RankingItem]:
+def list_ranking(
+    client: Client, *, limit: int = 50, period: str = "overall", source: str | None = None
+) -> list[RankingItem]:
     period = period if period in _VALID_PERIODS else "overall"
     since = _period_start(period)
     if since is not None:
-        return _list_ranking_period(client, since=since, limit=limit)
+        return _list_ranking_period(client, since=since, limit=limit, source=source)
     ranks_resp = (
         client.table("user_ranks")
         .select("user_id,total_score,total_watched_hours")

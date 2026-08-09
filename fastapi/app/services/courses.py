@@ -270,7 +270,7 @@ def track_course_view(
     if delta_sec > 0:
         try:
             client.table("daily_study_log").insert(
-                {"user_id": user_id, "seconds": delta_sec}
+                {"user_id": user_id, "seconds": delta_sec, "source": "video"}
             ).execute()
         except Exception:
             logger.exception("courses.view daily_study_log insert failed user_id=%s", user_id)

@@ -96,8 +96,9 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def healthcheck():
+    # HEAD ham qo'llab-quvvatlanadi — UptimeRobot HEAD yuboradi (405 bo'lmasin).
     return {"ok": True, "service": settings.app_name, "environment": settings.environment}
 
 

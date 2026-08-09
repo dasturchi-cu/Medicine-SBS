@@ -29,11 +29,13 @@ class HttpRankingRepository implements RankingRepository {
   Future<List<RankingItemModel>> fetchRanking({
     int limit = 50,
     String period = 'overall',
+    String? source,
   }) async {
     if (baseUrl.isEmpty) {
       throw Exception('API manzili topilmadi (ranking).');
     }
-    final uri = Uri.parse('$baseUrl/api/v1/ranking?limit=$limit&period=$period');
+    final sourceParam = (source != null && source.isNotEmpty) ? '&source=$source' : '';
+    final uri = Uri.parse('$baseUrl/api/v1/ranking?limit=$limit&period=$period$sourceParam');
     debugPrint('[API][ranking.fetch][request] $uri');
     final response = await _client.get(uri);
     debugPrint('[API][ranking.fetch][response] status=${response.statusCode}');
@@ -57,13 +59,17 @@ class HttpRankingRepository implements RankingRepository {
   }
 
   @override
-  Future<void> recordStudy({required String userId, required int seconds}) async {
+  Future<void> recordStudy({
+    required String userId,
+    required int seconds,
+    String source = 'pomodoro',
+  }) async {
     if (baseUrl.isEmpty || userId.isEmpty || seconds <= 0) return;
     try {
       await _client.post(
         Uri.parse('$baseUrl/api/v1/ranking/study'),
         headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': userId, 'seconds': seconds}),
+        body: jsonEncode({'user_id': userId, 'seconds': seconds, 'source': source}),
       );
     } catch (error) {
       debugPrint('[API][ranking.study][error] $error');

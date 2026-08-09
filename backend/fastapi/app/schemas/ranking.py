@@ -6,6 +6,7 @@ class StudyRecordRequest(BaseModel):
 
     user_id: str = Field(min_length=1)
     seconds: int = Field(ge=1, le=86400)
+    source: str = "pomodoro"
 
 
 class RankingItem(BaseModel):

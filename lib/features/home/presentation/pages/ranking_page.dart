@@ -7,22 +7,25 @@ import '../../../../core/localization/language_provider.dart';
 import '../../../../core/theme/design_system.dart';
 import '../../../../widgets/ranking_item.dart';
 
-/// Reyting davrlari — backend `period` parametriga mos keladi.
-const List<String> _kPeriods = <String>[
-  'daily',
-  'weekly',
-  'monthly',
-  'yearly',
-  'overall',
-];
+/// Reyting tab'i: kalit, sarlavha (tr yoki literal), davr, manba (video/pomodoro).
+class _RankTab {
+  final String key;
+  final String? titleKey; // tr kaliti (null bo'lsa literal `title` ishlatiladi)
+  final String title; // literal (masalan "Pomodoro")
+  final String period;
+  final String? source;
+  const _RankTab(this.key, {this.titleKey, this.title = '', required this.period, this.source});
+}
 
-const Map<String, String> _kPeriodTitleKey = <String, String>{
-  'daily': 'tab_daily',
-  'weekly': 'tab_weekly',
-  'monthly': 'tab_monthly',
-  'yearly': 'tab_yearly',
-  'overall': 'tab_overall',
-};
+// Video (o'qish) reytingi — 5 davr; + alohida "Pomodoro" (faqat kunlik).
+const List<_RankTab> _kTabs = <_RankTab>[
+  _RankTab('daily', titleKey: 'tab_daily', period: 'daily', source: 'video'),
+  _RankTab('weekly', titleKey: 'tab_weekly', period: 'weekly', source: 'video'),
+  _RankTab('monthly', titleKey: 'tab_monthly', period: 'monthly', source: 'video'),
+  _RankTab('yearly', titleKey: 'tab_yearly', period: 'yearly', source: 'video'),
+  _RankTab('overall', titleKey: 'tab_overall', period: 'overall', source: 'video'),
+  _RankTab('pomodoro', title: 'Pomodoro', period: 'daily', source: 'pomodoro'),
+];
 
 class RankingPage extends ConsumerStatefulWidget {
   const RankingPage({super.key});
@@ -40,30 +43,30 @@ class _RankingPageState extends ConsumerState<RankingPage>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: _kPeriods.length, vsync: this);
+    _tabs = TabController(length: _kTabs.length, vsync: this);
     _tabs.addListener(_onTabChanged);
-    Future.microtask(() => _load(_kPeriods.first));
+    Future.microtask(() => _load(_kTabs.first));
   }
 
   void _onTabChanged() {
     if (_tabs.indexIsChanging) return;
-    final period = _kPeriods[_tabs.index];
-    if (!_users.containsKey(period) && !(_loading[period] ?? false)) {
-      _load(period);
+    final tab = _kTabs[_tabs.index];
+    if (!_users.containsKey(tab.key) && !(_loading[tab.key] ?? false)) {
+      _load(tab);
     }
   }
 
-  Future<void> _load(String period) async {
+  Future<void> _load(_RankTab tab) async {
     if (!mounted) return;
-    setState(() => _loading[period] = true);
+    setState(() => _loading[tab.key] = true);
     try {
       final currentUserId = ref.read(authControllerProvider).userId ?? "";
       final items = await ref
           .read(rankingRepositoryProvider)
-          .fetchRanking(limit: 50, period: period);
+          .fetchRanking(limit: 50, period: tab.period, source: tab.source);
       if (!mounted) return;
       setState(() {
-        _users[period] = items
+        _users[tab.key] = items
             .map(
               (item) => _RankingUser(
                 rank: item.rank,
@@ -76,9 +79,9 @@ class _RankingPageState extends ConsumerState<RankingPage>
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _users[period] = const []);
+      setState(() => _users[tab.key] = const []);
     } finally {
-      if (mounted) setState(() => _loading[period] = false);
+      if (mounted) setState(() => _loading[tab.key] = false);
     }
   }
 
@@ -121,22 +124,23 @@ class _RankingPageState extends ConsumerState<RankingPage>
         ],
         bottom: TabBar(
           controller: _tabs,
-          isScrollable: false,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          unselectedLabelStyle: const TextStyle(fontSize: 13),
-          tabs: _kPeriods
-              .map((p) => Tab(text: context.tr(_kPeriodTitleKey[p]!)))
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontSize: 14),
+          tabs: _kTabs
+              .map((t) => Tab(text: t.titleKey != null ? context.tr(t.titleKey!) : t.title))
               .toList(),
         ),
       ),
       body: TabBarView(
         controller: _tabs,
-        children: _kPeriods.map((period) {
+        children: _kTabs.map((tab) {
           return _RankingList(
-            users: _users[period] ?? const [],
-            loading: _loading[period] ?? !_users.containsKey(period),
-            onRefresh: () => _load(period),
+            users: _users[tab.key] ?? const [],
+            loading: _loading[tab.key] ?? !_users.containsKey(tab.key),
+            onRefresh: () => _load(tab),
           );
         }).toList(),
       ),
