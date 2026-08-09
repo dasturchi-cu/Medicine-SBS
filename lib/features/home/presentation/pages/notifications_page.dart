@@ -7,11 +7,19 @@ import '../../../../core/di/providers.dart';
 import '../../../../core/state/auth_controller.dart';
 import '../../../../core/state/notifications_state.dart';
 
-class NotificationsPage extends ConsumerWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  // Bosilgan zahoti o'qilgan deb belgilaymiz (darhol UI, keyin backend'ga).
+  final Set<String> _viewedLocal = <String>{};
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final feedAsync = ref.watch(notificationsFeedProvider);
     final repo = ref.watch(notificationsRepositoryProvider);
@@ -32,11 +40,12 @@ class NotificationsPage extends ConsumerWidget {
               final item = items[index];
               return InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () async {
+                onTap: () {
                   final userId = auth.userId ?? '';
-                  await repo.markViewed(userId: userId, notificationId: item.id);
-                  await repo.markClicked(userId: userId, notificationId: item.id);
-                  ref.invalidate(notificationsFeedProvider);
+                  // Darhol o'qilgan deb belgilaymiz (ko'k nuqta yo'qoladi) — sekinlik yo'q.
+                  setState(() => _viewedLocal.add(item.id));
+                  repo.markViewed(userId: userId, notificationId: item.id);
+                  repo.markClicked(userId: userId, notificationId: item.id);
                 },
                 child: Card(
                   margin: EdgeInsets.zero,
@@ -58,7 +67,7 @@ class NotificationsPage extends ConsumerWidget {
                                     style: const TextStyle(fontWeight: FontWeight.w700),
                                   ),
                                 ),
-                                if (!item.viewed)
+                                if (!item.viewed && !_viewedLocal.contains(item.id))
                                   const Icon(Icons.brightness_1, size: 10, color: Color(0xFF2563EB)),
                               ],
                             ),
