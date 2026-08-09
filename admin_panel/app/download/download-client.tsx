@@ -78,18 +78,36 @@ export function DownloadClient() {
     return () => clearInterval(timer);
   }, [load]);
 
-  async function submit() {
-    setMsg(null);
-    if (stars < 1) return setMsg("Iltimos, yulduz bilan baholang.");
-    if (!name.trim()) return setMsg("Ismingizni yozing.");
-    if (!text.trim()) return setMsg("Izoh yozing.");
-    setBusy(true);
+  // Yulduz bosilganda — darhol baho yuboriladi va o'rtacha baho real-time yangilanadi.
+  async function rate(n: number) {
+    setStars(n);
     try {
       await apiFetch(`/api/v1/feedback/${CONTENT_KEY}/rate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, stars }),
+        body: JSON.stringify({ user_id: userId, stars: n }),
       });
+      await load();
+      setMsg("Bahoyingiz saqlandi ⭐");
+    } catch {
+      setMsg("Baho yuborilmadi. Qayta urinib ko'ring.");
+    }
+  }
+
+  async function submit() {
+    setMsg(null);
+    if (!name.trim()) return setMsg("Ismingizni yozing.");
+    if (!text.trim()) return setMsg("Izoh yozing.");
+    setBusy(true);
+    try {
+      // Baho yulduz bosilganda alohida yuboriladi; bu yerda faqat izoh (baho tanlangan bo'lsa ham yuboramiz).
+      if (stars >= 1) {
+        await apiFetch(`/api/v1/feedback/${CONTENT_KEY}/rate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, stars }),
+        });
+      }
       const res = await apiFetch(`/api/v1/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -202,7 +220,7 @@ export function DownloadClient() {
                 className={`msbs-star ${(hover || stars) >= n ? "on" : ""}`}
                 onMouseEnter={() => setHover(n)}
                 onMouseLeave={() => setHover(0)}
-                onClick={() => setStars(n)}
+                onClick={() => rate(n)}
                 aria-label={`${n} yulduz`}
               >★</button>
             ))}
