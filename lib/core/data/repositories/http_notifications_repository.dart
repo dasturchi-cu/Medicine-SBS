@@ -83,6 +83,23 @@ class HttpNotificationsRepository implements NotificationsRepository {
   }
 
   @override
+  Future<void> markAllViewed({required String userId}) async {
+    if (baseUrl.isEmpty || userId.isEmpty) return;
+    final uri = Uri.parse('$baseUrl/api/v1/notifications/view-all');
+    debugPrint('[API][notifications.viewAll][request] $uri userId=$userId');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId}),
+      );
+      debugPrint('[API][notifications.viewAll][response] status=${response.statusCode}');
+    } catch (error) {
+      debugPrint('[API][notifications.viewAll][error] $error');
+    }
+  }
+
+  @override
   Future<void> markClicked({
     required String userId,
     required String notificationId,

@@ -6,11 +6,13 @@ import { AppForm } from "@/components/form";
 import { AppTable } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FormModal } from "@/components/form-modal";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { StatusModal } from "@/components/status-modal";
-import { createBook, createBookCategory, deleteBook, fetchBookCategories, fetchBooks, type BookCategory, type BookItem } from "@/lib/api/content-assets";
+import { createBook, createBookCategory, deleteBook, fetchBookCategories, fetchBooks, updateBook, type BookCategory, type BookItem } from "@/lib/api/content-assets";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { uploadFileToSupabase } from "@/lib/supabase/storage";
 import { useStatusModal } from "@/lib/use-status-modal";
@@ -36,6 +38,25 @@ export default function BooksPage() {
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const statusModal = useStatusModal();
+  const [editItem, setEditItem] = useState<BookItem | null>(null);
+  const [editForm, setEditForm] = useState({ title: "", author: "", category: "", price: "", description: "" });
+
+  // Kategoriya nomidan ID topadi (bo'lmasa yaratadi) — create/edit ikkalasida ishlatiladi.
+  const resolveCategoryId = async (categoryValue: string): Promise<string | null> => {
+    const value = categoryValue.trim();
+    if (!value) return null;
+    const existing = categories.find((item) => item.name.toLowerCase() === value.toLowerCase());
+    if (existing) return existing.id;
+    const slug = value.toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+    try {
+      const created = await createBookCategory({ name: value, slug: slug || `cat-${Date.now()}` });
+      setCategories((prev) => [created, ...prev]);
+      return created.id;
+    } catch (categoryError) {
+      console.warn("[books.category.create.fallback]", categoryError);
+      return null;
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -68,6 +89,14 @@ export default function BooksPage() {
       { key: "author", label: "Muallif" },
       { key: "category_name", label: "Kategoriya" },
       {
+        key: "price_uzs",
+        label: "Narx",
+        render: (item: BookItem) =>
+          (item.price_uzs ?? 0) > 0
+            ? `${Math.round(item.price_uzs).toLocaleString("ru-RU")} so'm 🔒`
+            : "Ochiq",
+      },
+      {
         key: "file_url",
         label: "PDF",
         render: (item: BookItem) => (
@@ -80,9 +109,27 @@ export default function BooksPage() {
         key: "actions",
         label: "Amallar",
         render: (item: BookItem) => (
-          <Button variant="destructive" className="h-8 rounded-lg px-3 text-xs" onClick={() => setDeleteId(item.id)}>
-            O&apos;chirish
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="h-8 rounded-lg px-3 text-xs"
+              onClick={() => {
+                setEditItem(item);
+                setEditForm({
+                  title: item.title ?? "",
+                  author: item.author ?? "",
+                  category: item.category_name ?? "",
+                  price: String(item.price_uzs ?? 0),
+                  description: item.description ?? "",
+                });
+              }}
+            >
+              Tahrirlash
+            </Button>
+            <Button variant="destructive" className="h-8 rounded-lg px-3 text-xs" onClick={() => setDeleteId(item.id)}>
+              O&apos;chirish
+            </Button>
+          </div>
         ),
       },
     ],
@@ -245,7 +292,7 @@ export default function BooksPage() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="description">Tavsif</Label>
-          <Input id="description" value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
+          <Textarea id="description" rows={4} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
         </div>
         <div className="grid gap-2">
           <Label>Cover rasm</Label>
@@ -302,6 +349,73 @@ export default function BooksPage() {
           void submitDelete();
         }}
       />
+      <FormModal
+        open={Boolean(editItem)}
+        onOpenChange={(open) => {
+          if (!open) setEditItem(null);
+        }}
+        title="Kitobni tahrirlash"
+        description="Narx, nom, muallif va tavsifni yangilang. Narx > 0 bo'lsa kitob qulflanadi."
+      >
+        <form
+          className="space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const save = async () => {
+              if (!editItem) return;
+              try {
+                const categoryId = await resolveCategoryId(editForm.category);
+                const updated = await statusModal.run({
+                  loadingMessage: "Kitob saqlanmoqda...",
+                  successMessage: "Kitob yangilandi",
+                  errorMessage: "Kitobni tahrirlashda xatolik.",
+                  action: async () =>
+                    updateBook(editItem.id, {
+                      title: editForm.title.trim(),
+                      author: editForm.author.trim(),
+                      description: editForm.description.trim(),
+                      price_uzs: Number(editForm.price) || 0,
+                      ...(categoryId ? { category_id: categoryId } : {}),
+                    }),
+                });
+                setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
+                setEditItem(null);
+                notifySuccess("Kitob yangilandi.");
+              } catch (error) {
+                notifyError(error instanceof Error ? error.message : "Kitobni tahrirlashda xatolik.");
+              }
+            };
+            void save();
+          }}
+        >
+          <div className="grid gap-2">
+            <Label htmlFor="edit-title">Nomi</Label>
+            <Input id="edit-title" value={editForm.title} onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))} />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-author">Muallif</Label>
+              <Input id="edit-author" value={editForm.author} onChange={(e) => setEditForm((p) => ({ ...p, author: e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-category">Kategoriya</Label>
+              <Input id="edit-category" value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="edit-price">Narx (so&apos;m) — 0 ochiq, 0 dan katta bo&apos;lsa qulf</Label>
+            <Input id="edit-price" type="number" min="0" value={editForm.price} onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="edit-description">Tavsif</Label>
+            <Textarea id="edit-description" rows={4} value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} />
+          </div>
+          <Button type="submit" className="h-10 rounded-xl">
+            Saqlash
+          </Button>
+        </form>
+      </FormModal>
+
       <StatusModal open={statusModal.state.open} type={statusModal.state.type} message={statusModal.state.message} />
     </section>
   );

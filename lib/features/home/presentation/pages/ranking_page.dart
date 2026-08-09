@@ -18,13 +18,15 @@ class _RankTab {
 }
 
 // Video (o'qish) reytingi — 5 davr; + alohida "Pomodoro" (faqat kunlik).
+// Pomodoro 2-o'rinda (Kunlik'dan keyin) — chekkada qolib ko'zga tashlanmasligi
+// uchun; emoji bilan ajratilgan.
 const List<_RankTab> _kTabs = <_RankTab>[
   _RankTab('daily', titleKey: 'tab_daily', period: 'daily', source: 'video'),
+  _RankTab('pomodoro', title: '⏱ Pomodoro', period: 'daily', source: 'pomodoro'),
   _RankTab('weekly', titleKey: 'tab_weekly', period: 'weekly', source: 'video'),
   _RankTab('monthly', titleKey: 'tab_monthly', period: 'monthly', source: 'video'),
   _RankTab('yearly', titleKey: 'tab_yearly', period: 'yearly', source: 'video'),
   _RankTab('overall', titleKey: 'tab_overall', period: 'overall', source: 'video'),
-  _RankTab('pomodoro', title: 'Pomodoro', period: 'daily', source: 'pomodoro'),
 ];
 
 class RankingPage extends ConsumerStatefulWidget {

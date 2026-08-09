@@ -22,6 +22,7 @@ export interface BookItem {
   lesson_id: string | null;
   is_active: boolean;
   created_at: string;
+  has_access?: boolean;
 }
 
 export interface LessonAssetItem {
@@ -120,6 +121,36 @@ export async function deleteBook(id: string) {
     headers: headers(),
   });
   if (!response.ok) throw new Error(await parseError(response, "Kitobni o'chirishda xatolik."));
+}
+
+// --- Kitob grantlari (userga qulflangan kitobni ochib berish) ---
+
+export async function fetchBookGrants(userId: string): Promise<string[]> {
+  const response = await apiFetch(`/api/v1/content/books/grants?user_id=${encodeURIComponent(userId)}`, {
+    method: "GET",
+    cache: "no-store",
+    headers: headers(),
+  });
+  if (!response.ok) throw new Error(await parseError(response, "Kitob grantlarini olishda xatolik."));
+  const payload = (await response.json()) as { granted_book_ids: string[] };
+  return payload.granted_book_ids ?? [];
+}
+
+export async function grantBook(bookId: string, userId: string) {
+  const response = await apiFetch(`/api/v1/content/books/${bookId}/grant`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ user_id: userId }),
+  });
+  if (!response.ok) throw new Error(await parseError(response, "Kitob berishda xatolik."));
+}
+
+export async function revokeBook(bookId: string, userId: string) {
+  const response = await apiFetch(`/api/v1/content/books/${bookId}/grant?user_id=${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+    headers: headers(),
+  });
+  if (!response.ok) throw new Error(await parseError(response, "Kitob ruxsatini olib tashlashda xatolik."));
 }
 
 export async function fetchLessonAssets(params?: { lessonId?: string; courseId?: string }) {

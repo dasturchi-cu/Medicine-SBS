@@ -618,28 +618,8 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                         separatorBuilder: (_, index) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           final news = newsItems[index];
-                          final newsStatsAsync = ref.watch(
-                            contentCardStatsProvider(
-                              (key: news.feedbackKey, useFeedbackApi: news.useFeedbackApi),
-                            ),
-                          );
-                          final newsStats = newsStatsAsync.valueOrNull;
                           return _NewsCard(
                             item: news,
-                            ratingValue: newsStats?.ratingAvg ?? news.rating,
-                            commentCountValue: newsStats?.commentsCount ?? news.commentCount,
-                            onCommentsTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                showDragHandle: false,
-                                builder: (_) => CourseStatsCommentsSheet(
-                                  courseId: news.feedbackKey,
-                                  courseTitleUz: news.titleUz,
-                                  useFeedbackApi: news.useFeedbackApi,
-                                ),
-                              );
-                            },
                             onBuyTap: () async {
                               await showPurchaseModal(
                                 context: context,
@@ -834,16 +814,10 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 class _NewsCard extends StatelessWidget {
   const _NewsCard({
     required this.item,
-    required this.ratingValue,
-    required this.commentCountValue,
-    required this.onCommentsTap,
     required this.onBuyTap,
   });
 
   final _NewsItem item;
-  final double ratingValue;
-  final int commentCountValue;
-  final VoidCallback onCommentsTap;
   final VoidCallback onBuyTap;
 
   @override
@@ -902,50 +876,13 @@ class _NewsCard extends StatelessWidget {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 16, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        ratingValue.toStringAsFixed(1),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(
-                        Icons.chat_bubble_outline,
-                        size: 16,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$commentCountValue ta sharh',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: onCommentsTap,
-                          child: const Text('Sharhlar'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: onBuyTap,
-                          child: const Text('Sotib olish'),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onBuyTap,
+                      child: const Text('Sotib olish'),
+                    ),
                   ),
                 ],
               ),

@@ -25,6 +25,7 @@ import {
   updateUser,
 } from "@/lib/api/users";
 import { fetchCourses } from "@/lib/api/courses";
+import { fetchBooks, fetchBookGrants, grantBook, revokeBook, type BookItem } from "@/lib/api/content-assets";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useStatusModal } from "@/lib/use-status-modal";
@@ -39,6 +40,9 @@ export default function UserDetailPage() {
   const [entitlements, setEntitlements] = useState<UserEntitlementItem[]>([]);
   const [overview, setOverview] = useState<UserOverviewResponse | null>(null);
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [books, setBooks] = useState<BookItem[]>([]);
+  const [grantedBookIds, setGrantedBookIds] = useState<string[]>([]);
+  const [selectedBook, setSelectedBook] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [editValues, setEditValues] = useState({ name: "", email: "" });
@@ -59,6 +63,20 @@ export default function UserDetailPage() {
         setCourses(courseItems.map((item) => ({ id: item.id, title_uz: item.title_uz })));
         setEntitlements(entitlementItems);
         setSelectedCourse(courseItems[0]?.id ?? "");
+
+        // Kitoblar + shu userga berilgan kitoblar (backend eski bo'lsa jim o'tamiz).
+        try {
+          const [bookItems, granted] = await Promise.all([fetchBooks(), fetchBookGrants(userId)]);
+          if (!mounted) return;
+          setBooks(bookItems);
+          setGrantedBookIds(granted);
+          const firstLocked = bookItems.find((b) => (b.price_uzs ?? 0) > 0);
+          setSelectedBook(firstLocked?.id ?? bookItems[0]?.id ?? "");
+        } catch {
+          if (!mounted) return;
+          setBooks([]);
+          setGrantedBookIds([]);
+        }
 
         // Keep page usable even if backend has not deployed /overview yet.
         try {
@@ -304,6 +322,83 @@ export default function UserDetailPage() {
             ))
           ) : (
             <p className="text-sm text-slate-500">Faol kurslar yo&apos;q.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="surface-card p-5">
+        <h3 className="text-base font-semibold text-slate-900">Kitob ochib berish</h3>
+        <p className="mt-2 text-sm text-slate-600">
+          Narxli (qulflangan) kitobni tanlab shu foydalanuvchiga oching — ilovada qulf ochiladi va o‘qiy oladi (bir necha soniyada yangilanadi), huddi darslar kabi.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Select value={selectedBook} onValueChange={(value) => setSelectedBook(value ?? "")}>
+            <SelectTrigger className="h-10 rounded-xl border-slate-200 sm:max-w-sm">
+              <SelectValue placeholder="Kitobni tanlang">
+                {books.find((b) => b.id === selectedBook)?.title ?? "Kitobni tanlang"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {books.filter((b) => (b.price_uzs ?? 0) > 0).map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            className="h-10 rounded-xl"
+            onClick={async () => {
+              if (!selectedBook) {
+                notifyError("Avval kitob tanlang.");
+                return;
+              }
+              try {
+                await runStatus({
+                  loadingMessage: "Kitob ochilmoqda...",
+                  successMessage: "Kitob foydalanuvchiga ochildi",
+                  errorMessage: "Kitob berishda xatolik.",
+                  action: async () => grantBook(selectedBook, user.id),
+                });
+                setGrantedBookIds(await fetchBookGrants(user.id));
+                notifySuccess("Kitob ochildi.");
+              } catch (error) {
+                notifyError(error instanceof Error ? error.message : "Kitob berishda xatolik.");
+              }
+            }}
+          >
+            Kitob ochish
+          </Button>
+        </div>
+        <div className="mt-4 space-y-2">
+          {books.filter((b) => grantedBookIds.includes(b.id)).length > 0 ? (
+            books
+              .filter((b) => grantedBookIds.includes(b.id))
+              .map((b) => (
+                <div key={b.id} className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{b.title}</p>
+                    <p className="text-xs text-slate-500">{Math.round(b.price_uzs ?? 0).toLocaleString("ru-RU")} so&apos;m</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    className="h-8 rounded-lg px-3 text-xs"
+                    onClick={async () => {
+                      try {
+                        await revokeBook(b.id, user.id);
+                        setGrantedBookIds(await fetchBookGrants(user.id));
+                        notifySuccess("Kitob ruxsati olindi.");
+                      } catch (error) {
+                        notifyError(error instanceof Error ? error.message : "Ruxsatni olishda xatolik.");
+                      }
+                    }}
+                  >
+                    Yopish
+                  </Button>
+                </div>
+              ))
+          ) : (
+            <p className="text-sm text-slate-500">Ochib berilgan kitob yo&apos;q.</p>
           )}
         </div>
       </div>

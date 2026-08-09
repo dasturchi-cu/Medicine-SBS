@@ -10,6 +10,7 @@ class BookItemModel {
     required this.categoryName,
     required this.pageCount,
     this.priceUzs = 0,
+    this.hasAccess = true,
   });
 
   final String id;
@@ -23,10 +24,14 @@ class BookItemModel {
   final int pageCount;
   final double priceUzs;
 
-  /// Narx > 0 bo'lsa kitob qulflangan (sotib olish/Telegram orqali).
-  bool get isLocked => priceUzs > 0;
+  /// Admin shu foydalanuvchiga kitobni ochib berganmi (grant). Narx 0 bo'lsa true.
+  final bool hasAccess;
+
+  /// Narx > 0 bo'lsa qulflangan — lekin admin ochib bergan bo'lsa (hasAccess) ochiq.
+  bool get isLocked => priceUzs > 0 && !hasAccess;
 
   factory BookItemModel.fromJson(Map<String, dynamic> json) {
+    final rawAccess = json['has_access'];
     return BookItemModel(
       id: (json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
@@ -38,6 +43,8 @@ class BookItemModel {
       categoryName: (json['category_name'] ?? '').toString(),
       pageCount: int.tryParse((json['page_count'] ?? '0').toString()) ?? 0,
       priceUzs: double.tryParse((json['price_uzs'] ?? '0').toString()) ?? 0,
+      // has_access kelmasa (eski backend) — true (ortga moslik).
+      hasAccess: rawAccess == null ? true : rawAccess == true || rawAccess.toString() == 'true',
     );
   }
 }

@@ -59,10 +59,16 @@ class BookItem(BaseModel):
     lesson_id: str | None = None
     is_active: bool
     created_at: datetime
+    # Foydalanuvchi kitobga kira oladimi: narx 0 bo'lsa yoki admin ochib bergan bo'lsa true.
+    has_access: bool = True
 
 
 class BooksResponse(BaseModel):
     items: list[BookItem]
+
+
+class BookGrantRequest(BaseModel):
+    user_id: str = Field(min_length=1)
 
 
 class BookCreate(BaseModel):

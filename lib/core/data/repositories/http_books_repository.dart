@@ -18,9 +18,11 @@ class HttpBooksRepository implements BooksRepository {
   http.Client get _client => client ?? http.Client();
 
   @override
-  Future<List<BookItemModel>> fetchBooks() async {
+  Future<List<BookItemModel>> fetchBooks({String? userId}) async {
     if (baseUrl.isEmpty) return const [];
-    final response = await _client.get(Uri.parse('$baseUrl/api/v1/content/books'));
+    // user_id yuborilsa backend qulf/ochiqlikni (has_access) shu userga qarab hisoblaydi.
+    final q = (userId != null && userId.isNotEmpty) ? '?user_id=$userId' : '';
+    final response = await _client.get(Uri.parse('$baseUrl/api/v1/content/books$q'));
     if (response.statusCode < 200 || response.statusCode >= 300) return const [];
     final body = jsonDecode(response.body);
     if (body is! Map<String, dynamic>) return const [];
@@ -30,14 +32,14 @@ class HttpBooksRepository implements BooksRepository {
   }
 
   @override
-  Stream<List<BookItemModel>> watchBooks({Duration pollInterval = const Duration(seconds: 10)}) {
+  Stream<List<BookItemModel>> watchBooks({String? userId, Duration pollInterval = const Duration(seconds: 10)}) {
     final controller = StreamController<List<BookItemModel>>();
     Timer? poller;
     var disposed = false;
 
     Future<void> push() async {
       if (disposed) return;
-      controller.add(await fetchBooks());
+      controller.add(await fetchBooks(userId: userId));
     }
 
     Future<void> boot() async {

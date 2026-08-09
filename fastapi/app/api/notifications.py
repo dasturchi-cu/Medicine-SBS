@@ -15,6 +15,7 @@ from ..services.notifications import (
     delete_notification,
     list_user_notification_feed,
     list_notifications,
+    mark_all_notifications_viewed,
     mark_notification_viewed,
     mark_notification_clicked,
 )
@@ -65,6 +66,12 @@ def remove_notification(
     _: None = Depends(_require_admin_key),
 ):
     delete_notification(get_supabase_client(), notification_id)
+
+
+@router.post("/view-all", status_code=status.HTTP_204_NO_CONTENT)
+def set_all_notifications_viewed(payload: MarkViewedRequest):
+    """Foydalanuvchining barcha bildirishnomalarini 'ko'rildi' deb belgilaydi."""
+    mark_all_notifications_viewed(get_supabase_client(), user_id=str(payload.user_id))
 
 
 @router.post("/{notification_id}/view", status_code=status.HTTP_204_NO_CONTENT)

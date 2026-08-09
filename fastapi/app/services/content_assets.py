@@ -44,7 +44,7 @@ def _to_lesson_asset(row: dict[str, Any]) -> LessonAssetItem:
     )
 
 
-def _to_book(row: dict[str, Any]) -> BookItem:
+def _to_book(row: dict[str, Any], *, has_access: bool = True) -> BookItem:
     created_at = row.get("created_at")
     if isinstance(created_at, str):
         created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
@@ -70,6 +70,7 @@ def _to_book(row: dict[str, Any]) -> BookItem:
         lesson_id=str(row.get("lesson_id")) if row.get("lesson_id") else None,
         is_active=bool(row.get("is_active")),
         created_at=created,
+        has_access=has_access,
     )
 
 
@@ -177,7 +178,7 @@ def delete_lesson_asset(client: Client, *, asset_id: str) -> None:
     client.table("lesson_assets").delete().eq("id", asset_id).execute()
 
 
-def list_books(client: Client, *, course_id: str | None = None) -> list[BookItem]:
+def list_books(client: Client, *, course_id: str | None = None, user_id: str | None = None) -> list[BookItem]:
     query = client.table("book_items").select("*").order("created_at", desc=True)
     if course_id:
         query = query.eq("course_id", course_id)
@@ -192,7 +193,19 @@ def list_books(client: Client, *, course_id: str | None = None) -> list[BookItem
         cid = str(r.get("category_id")) if r.get("category_id") else None
         if cid and names.get(cid):
             r["book_categories"] = {"name": names[cid]}
-    return [_to_book(row) for row in rows]
+    # Qulf: narx > 0 bo'lsa qulflangan; lekin admin ochib bergan bo'lsa (grant) ochiq.
+    granted: set[str] = set()
+    if user_id:
+        from .book_grants import granted_book_ids
+
+        granted = granted_book_ids(client, user_id=user_id)
+    result: list[BookItem] = []
+    for row in rows:
+        price = float(row.get("price_uzs") or 0)
+        book_id = str(row.get("id") or "")
+        has_access = price <= 0 or (book_id in granted)
+        result.append(_to_book(row, has_access=has_access))
+    return result
 
 
 def _book_insert_payload(payload: BookCreate) -> dict[str, Any]:

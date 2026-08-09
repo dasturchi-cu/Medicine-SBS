@@ -17,6 +17,25 @@ class NotificationsPage extends ConsumerStatefulWidget {
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   // Bosilgan zahoti o'qilgan deb belgilaymiz (darhol UI, keyin backend'ga).
   final Set<String> _viewedLocal = <String>{};
+  // Sahifa ochilishi bilan HAMMA bildirishnoma "ko'rildi" bo'ladi (YouTube kabi) —
+  // shunda badge tozalanadi va har birini alohida bosish shart emas.
+  bool _allSeen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Birinchi frame'dan keyin: barchasini bir marta "ko'rildi" deb belgilaymiz.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _markAllSeen());
+  }
+
+  Future<void> _markAllSeen() async {
+    final userId = ref.read(authControllerProvider).userId ?? '';
+    if (userId.isEmpty) return;
+    if (mounted) setState(() => _allSeen = true); // darhol nuqtalarni yashiramiz
+    await ref.read(notificationsRepositoryProvider).markAllViewed(userId: userId);
+    // Backend yangilandi — feed'ni qayta o'qitamiz, home'dagi badge ham 0 bo'ladi.
+    if (mounted) ref.invalidate(notificationsFeedProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +45,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Notificationlar')),
       body: feedAsync.when(
+        skipLoadingOnReload: true, // invalidate paytida eski ro'yxat ko'rinib tursin (flicker yo'q)
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => const Center(child: Text('Notificationlarni yuklashda xatolik.')),
         data: (items) {
@@ -67,7 +87,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                                     style: const TextStyle(fontWeight: FontWeight.w700),
                                   ),
                                 ),
-                                if (!item.viewed && !_viewedLocal.contains(item.id))
+                                if (!item.viewed && !_allSeen && !_viewedLocal.contains(item.id))
                                   const Icon(Icons.brightness_1, size: 10, color: Color(0xFF2563EB)),
                               ],
                             ),

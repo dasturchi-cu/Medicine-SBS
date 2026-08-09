@@ -6,6 +6,7 @@ from ..schemas.content_assets import (
     BookCategoryCreate,
     BookCategoryItem,
     BookCategoriesResponse,
+    BookGrantRequest,
     BookItem,
     BookCreate,
     BookProgressItem,
@@ -37,6 +38,7 @@ from ..services.content_assets import (
     upsert_book_progress,
     upsert_slide_progress,
 )
+from ..services.book_grants import grant_book, revoke_book, granted_book_ids
 from ..services.r2_storage import upload_bytes
 
 router = APIRouter(prefix="/content", tags=["content-assets"])
@@ -109,8 +111,30 @@ def remove_asset(asset_id: str, _: None = Depends(_require_admin_key)):
 
 
 @router.get("/books", response_model=BooksResponse)
-def get_books(course_id: str | None = Query(default=None)):
-    return BooksResponse(items=list_books(get_supabase_client(), course_id=course_id))
+def get_books(
+    course_id: str | None = Query(default=None),
+    user_id: str | None = Query(default=None),
+):
+    return BooksResponse(items=list_books(get_supabase_client(), course_id=course_id, user_id=user_id))
+
+
+@router.get("/books/grants")
+def get_book_grants(user_id: str = Query(min_length=1), _: None = Depends(_require_admin_key)):
+    """Admin: shu foydalanuvchiga ochilgan kitob ID'lari."""
+    ids = granted_book_ids(get_supabase_client(), user_id=user_id)
+    return {"granted_book_ids": sorted(ids)}
+
+
+@router.post("/books/{book_id}/grant", status_code=status.HTTP_204_NO_CONTENT)
+def post_book_grant(book_id: str, payload: BookGrantRequest, _: None = Depends(_require_admin_key)):
+    """Admin: qulflangan kitobni foydalanuvchiga ochib beradi."""
+    grant_book(get_supabase_client(), user_id=str(payload.user_id), book_id=book_id)
+
+
+@router.delete("/books/{book_id}/grant", status_code=status.HTTP_204_NO_CONTENT)
+def delete_book_grant(book_id: str, user_id: str = Query(min_length=1), _: None = Depends(_require_admin_key)):
+    """Admin: foydalanuvchidan kitob ruxsatini olib tashlaydi."""
+    revoke_book(get_supabase_client(), user_id=user_id, book_id=book_id)
 
 
 @router.get("/books/categories", response_model=BookCategoriesResponse)

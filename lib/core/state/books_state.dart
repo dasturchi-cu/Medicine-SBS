@@ -5,7 +5,9 @@ import '../di/providers.dart';
 import 'auth_controller.dart';
 
 final booksFeedProvider = StreamProvider<List<BookItemModel>>((ref) {
-  return ref.read(booksRepositoryProvider).watchBooks();
+  // user_id — qulf/ochiqlik shu foydalanuvchiga qarab hisoblanadi (admin grant).
+  final userId = ref.watch(authControllerProvider).userId ?? '';
+  return ref.read(booksRepositoryProvider).watchBooks(userId: userId);
 });
 
 final bookProgressProvider = FutureProvider<List<BookProgressModel>>((ref) async {

@@ -220,6 +220,14 @@ def mark_notification_viewed(client: Client, *, notification_id: str, user_id: s
     ).eq("user_id", user_id).is_("viewed_at", None).execute()
 
 
+def mark_all_notifications_viewed(client: Client, *, user_id: str) -> None:
+    """Foydalanuvchining barcha o'qilmagan bildirishnomalarini bir marta 'ko'rildi'
+    deb belgilaydi (YouTube kabi — sahifa ochilganda badge tozalanadi)."""
+    client.table("notification_deliveries").update({"viewed_at": datetime.utcnow().isoformat()}).eq(
+        "user_id", user_id
+    ).is_("viewed_at", None).execute()
+
+
 def mark_notification_clicked(client: Client, *, notification_id: str, user_id: str) -> None:
     existing = (
         client.table("notification_click_events")

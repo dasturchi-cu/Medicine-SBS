@@ -352,6 +352,18 @@ class NeonClient:
     def rpc(self, fn: str, params: dict[str, Any] | None = None) -> RPCBuilder:
         return RPCBuilder(self._pool, fn, params)
 
+    def execute_sql(self, query: str, params: list[Any] | None = None) -> list[dict[str, Any]]:
+        """Xom SQL bajaradi (DDL yoki maxsus so'rovlar uchun). SELECT bo'lsa qatorlarni,
+        aks holda bo'sh ro'yxat qaytaradi. Shim query-builder yetmagan joyda ishlatiladi."""
+        with self._pool.connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(query, params or [])
+                try:
+                    rows = cur.fetchall()
+                except Exception:
+                    rows = []
+        return [_jsonify_row(r) for r in rows]
+
 
 # Mavjud servislar `from supabase import Client` o'rniga shu tur bilan ishlaydi
 # (type-hint mos-kelishi uchun).
