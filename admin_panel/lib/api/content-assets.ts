@@ -14,6 +14,7 @@ export interface BookItem {
   file_url: string;
   file_mime: string;
   page_count: number;
+  price_uzs: number;
   author: string;
   category_id: string | null;
   category_name: string | null;

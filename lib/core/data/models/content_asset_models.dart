@@ -9,6 +9,7 @@ class BookItemModel {
     required this.author,
     required this.categoryName,
     required this.pageCount,
+    this.priceUzs = 0,
   });
 
   final String id;
@@ -20,6 +21,10 @@ class BookItemModel {
   final String author;
   final String categoryName;
   final int pageCount;
+  final double priceUzs;
+
+  /// Narx > 0 bo'lsa kitob qulflangan (sotib olish/Telegram orqali).
+  bool get isLocked => priceUzs > 0;
 
   factory BookItemModel.fromJson(Map<String, dynamic> json) {
     return BookItemModel(
@@ -32,6 +37,7 @@ class BookItemModel {
       author: (json['author'] ?? '').toString(),
       categoryName: (json['category_name'] ?? '').toString(),
       pageCount: int.tryParse((json['page_count'] ?? '0').toString()) ?? 0,
+      priceUzs: double.tryParse((json['price_uzs'] ?? '0').toString()) ?? 0,
     );
   }
 }

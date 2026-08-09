@@ -60,6 +60,7 @@ def _to_book(row: dict[str, Any]) -> BookItem:
         file_url=str(row.get("file_url") or ""),
         file_mime=str(row.get("file_mime") or "application/pdf"),
         page_count=int(row.get("page_count") or 0),
+        price_uzs=float(row.get("price_uzs") or 0),
         author=str(row.get("author") or ""),
         category_id=str(row.get("category_id")) if row.get("category_id") else None,
         category_name=str(row.get("book_categories", {}).get("name"))

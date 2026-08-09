@@ -28,6 +28,7 @@ export default function BooksPage() {
     fileMime: "application/pdf",
     category: "",
     author: "",
+    price: "",
   });
   const [uploading, setUploading] = useState<"none" | "cover" | "pdf">("none");
   const [selectedCoverName, setSelectedCoverName] = useState("");
@@ -178,6 +179,7 @@ export default function BooksPage() {
               file_url: form.fileUrl.replace(/\s+/g, "").trim(),
               file_mime: form.fileMime,
               author: form.author.trim(),
+              price_uzs: Number(form.price) || 0,
               category_id: categoryId,
             }),
         });
@@ -191,6 +193,7 @@ export default function BooksPage() {
           fileMime: "application/pdf",
           category: "",
           author: "",
+          price: "",
         });
         setSelectedCoverName("");
         setSelectedFileName("");
@@ -235,6 +238,10 @@ export default function BooksPage() {
             <Label htmlFor="category">Kategoriya</Label>
             <Input id="category" value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} />
           </div>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="price">Narx (so&apos;m) — 0 bo&apos;lsa ochiq, 0 dan katta bo&apos;lsa qulf (Telegram orqali sotiladi)</Label>
+          <Input id="price" type="number" min="0" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="description">Tavsif</Label>

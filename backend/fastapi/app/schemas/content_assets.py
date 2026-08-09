@@ -51,6 +51,7 @@ class BookItem(BaseModel):
     file_url: str
     file_mime: str
     page_count: int
+    price_uzs: float = 0
     author: str
     category_id: str | None = None
     category_name: str | None = None
@@ -71,6 +72,7 @@ class BookCreate(BaseModel):
     file_url: str = Field(min_length=1)
     file_mime: str = "application/pdf"
     page_count: int = 0
+    price_uzs: float = 0
     author: str = ""
     category_id: str | None = None
     course_id: str | None = None
@@ -85,6 +87,7 @@ class BookUpdate(BaseModel):
     file_url: str | None = None
     file_mime: str | None = None
     page_count: int | None = None
+    price_uzs: float | None = None
     author: str | None = None
     category_id: str | None = None
     course_id: str | None = None
