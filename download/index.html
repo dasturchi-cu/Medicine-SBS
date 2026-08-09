@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Medicine:SBS — Ilovani yuklab olish</title>
+  <meta name="description" content="Medicine:SBS mobil ilovasini Android telefoningizga yuklab oling." />
+  <style>
+    :root { --teal:#1AA0AE; --teal-d:#12808c; --ink:#0f2a2e; --muted:#5b7377; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height: 100vh; color: var(--ink);
+      background: linear-gradient(160deg, #e9f7f8 0%, #ffffff 55%);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      width: 100%; max-width: 420px; background: #fff; border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(26,160,174,.18); padding: 36px 28px; text-align: center;
+    }
+    .logo { width: 132px; height: 132px; border-radius: 28px; object-fit: contain;
+      background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.06); margin: 0 auto 18px; padding: 10px; }
+    h1 { font-size: 26px; letter-spacing: .5px; }
+    h1 b { color: var(--teal); }
+    .sub { color: var(--muted); margin: 8px 0 26px; font-size: 15px; }
+    .btn {
+      display: block; width: 100%; padding: 16px; border: none; border-radius: 16px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-d)); color: #fff;
+      font-size: 17px; font-weight: 700; text-decoration: none; cursor: pointer;
+      box-shadow: 0 12px 24px rgba(26,160,174,.35); transition: transform .12s ease;
+    }
+    .btn:active { transform: scale(.98); }
+    .size { color: var(--muted); font-size: 13px; margin-top: 10px; }
+    .steps { text-align: left; margin-top: 26px; background: #f4fafb; border-radius: 16px; padding: 16px 18px; }
+    .steps h2 { font-size: 14px; color: var(--teal-d); margin-bottom: 8px; }
+    .steps ol { margin-left: 18px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .foot { margin-top: 22px; color: #9fb3b6; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <!-- Logoni R2 bucketga logo.png nomi bilan yuklang -->
+    <img class="logo" src="https://pub-6ef940b147524cc6aeacec5f401192fa.r2.dev/logo.png" alt="Medicine:SBS" />
+    <h1>Medicine<b>:SBS</b></h1>
+    <p class="sub">Tibbiyot kurslari ilovasi — Android uchun</p>
+
+    <!-- APK'ni R2 bucketga medicine-sbs.apk nomi bilan yuklang -->
+    <a class="btn" href="https://pub-6ef940b147524cc6aeacec5f401192fa.r2.dev/medicine-sbs.apk" download>
+      ⬇️  Ilovani yuklab olish (APK)
+    </a>
+    <p class="size">Android 6.0+ · ~32 MB</p>
+
+    <section class="steps">
+      <h2>O'rnatish yo'riqnomasi</h2>
+      <ol>
+        <li>Yuqoridagi tugmani bosing — fayl yuklanadi.</li>
+        <li>Yuklangan <b>medicine-sbs.apk</b> faylini oching.</li>
+        <li>"Noma'lum manbadan o'rnatish"ga <b>ruxsat bering</b>.</li>
+        <li>"O'rnatish" tugmasini bosing — tayyor! ✅</li>
+      </ol>
+    </section>
+
+    <p class="foot">© Medicine:SBS · Muallif: Abdurahmonov Tohirjon</p>
+  </main>
+</body>
+</html>

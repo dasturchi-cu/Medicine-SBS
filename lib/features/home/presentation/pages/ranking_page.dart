@@ -119,7 +119,10 @@ class _RankingPageState extends ConsumerState<RankingPage>
         ],
         bottom: TabBar(
           controller: _tabs,
-          isScrollable: true,
+          isScrollable: false,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontSize: 13),
           tabs: _kPeriods
               .map((p) => Tab(text: context.tr(_kPeriodTitleKey[p]!)))
               .toList(),

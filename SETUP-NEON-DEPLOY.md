@@ -136,7 +136,7 @@ Admin panelda "Upload" tugmasi ishlashi uchun backend R2'ga yoza olishi kerak:
    - **Build command:** `npm run build`
 3. **Environment variables:**
    ```
-   NEXT_PUBLIC_API_BASE_URL = https://medicine-sbs.onrender.com/api/v1
+   NEXT_PUBLIC_API_BASE_URL = https://medicine-sbs.onrender.com
    NEXT_PUBLIC_ADMIN_API_KEY = (backend ADMIN_API_KEY bilan bir xil bo'lsin)
    ```
    > `NEXT_PUBLIC_ADMIN_API_KEY` backend'dagi `ADMIN_API_KEY` bilan **aynan bir xil**
