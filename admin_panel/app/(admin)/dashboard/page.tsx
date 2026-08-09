@@ -149,15 +149,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="surface-card">
-        <CardHeader>
-          <CardTitle>Backend holati</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-slate-600">
-          Boshqaruv paneli endi real APIdan o&apos;qiydi. Agar qiymatlar 0 bo&apos;lsa, Supabase jadvalida hali ma&apos;lumot yo&apos;qligini bildiradi.
-        </CardContent>
-      </Card>
     </section>
   );
 }

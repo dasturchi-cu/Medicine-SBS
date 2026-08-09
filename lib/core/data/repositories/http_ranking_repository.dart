@@ -55,4 +55,18 @@ class HttpRankingRepository implements RankingRepository {
         .map(RankingItemModel.fromJson)
         .toList(growable: false);
   }
+
+  @override
+  Future<void> recordStudy({required String userId, required int seconds}) async {
+    if (baseUrl.isEmpty || userId.isEmpty || seconds <= 0) return;
+    try {
+      await _client.post(
+        Uri.parse('$baseUrl/api/v1/ranking/study'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': userId, 'seconds': seconds}),
+      );
+    } catch (error) {
+      debugPrint('[API][ranking.study][error] $error');
+    }
+  }
 }

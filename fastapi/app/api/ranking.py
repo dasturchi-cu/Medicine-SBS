@@ -1,10 +1,16 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from ..db import get_supabase_client
-from ..schemas.ranking import RankingResponse
-from ..services.ranking import list_ranking
+from ..schemas.ranking import RankingResponse, StudyRecordRequest
+from ..services.ranking import list_ranking, record_study_seconds
 
 router = APIRouter(prefix="/ranking", tags=["ranking"])
+
+
+@router.post("/study", status_code=status.HTTP_204_NO_CONTENT)
+def post_study(payload: StudyRecordRequest):
+    """Pomodoro/o'qish vaqtini reytingga qo'shadi."""
+    record_study_seconds(get_supabase_client(), user_id=payload.user_id, seconds=payload.seconds)
 
 
 @router.get("", response_model=RankingResponse)

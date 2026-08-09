@@ -77,6 +77,15 @@ def _period_start(period: str) -> date | None:
     return None
 
 
+def record_study_seconds(client: Client, *, user_id: str, seconds: int) -> None:
+    """Pomodoro/o'qish vaqtini daily_study_log'ga qo'shadi (kunlik reyting uchun)."""
+    if seconds <= 0:
+        return
+    client.table("daily_study_log").insert(
+        {"user_id": user_id, "seconds": int(seconds)}
+    ).execute()
+
+
 def _list_ranking_period(client: Client, *, since: date, limit: int) -> list[RankingItem]:
     resp = client.rpc(
         "ranking_by_period",

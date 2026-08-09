@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart';
+import '../../../../core/state/auth_controller.dart';
+
 enum PomodoroSessionType { focus, breakTime }
 
 class PomodoroState {
@@ -155,6 +158,7 @@ class PomodoroController extends Notifier<PomodoroState> {
     if (seconds <= 1) {
       _cancelTimer();
       final finishedFocus = state.sessionType == PomodoroSessionType.focus;
+      final focusMinutes = state.focusMinutes;
       state = state.copyWith(
         remainingSeconds: 0,
         isRunning: false,
@@ -163,6 +167,18 @@ class PomodoroController extends Notifier<PomodoroState> {
             ? state.pomodoroCount + 1
             : state.pomodoroCount,
       );
+      // Fokus sessiyasi tugadi — o'qish vaqtini reytingga qo'shamiz (kunlik).
+      if (finishedFocus) {
+        final userId = ref.read(authControllerProvider).userId ?? '';
+        if (userId.isNotEmpty) {
+          unawaited(
+            ref.read(rankingRepositoryProvider).recordStudy(
+                  userId: userId,
+                  seconds: focusMinutes * 60,
+                ),
+          );
+        }
+      }
       return;
     }
 
