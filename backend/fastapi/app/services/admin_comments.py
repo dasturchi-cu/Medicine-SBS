@@ -91,7 +91,11 @@ def _course_title_display(course_key: str, resolved_title: str) -> str:
 def _resolve_admin_actor(client: Client, configured_admin_user_id: str | None) -> str:
     configured = (configured_admin_user_id or "").strip()
     if configured:
-        exists = client.table("users").select("id").eq("id", configured).limit(1).execute().data or []
+        try:
+            exists = client.table("users").select("id").eq("id", configured).limit(1).execute().data or []
+        except Exception:
+            # ADMIN_USER_ID UUID bo'lmasa (masalan Telegram ID) — e'tiborsiz qoldiramiz.
+            exists = []
         if exists:
             return configured
     first_user = client.table("users").select("id").order("created_at", desc=False).limit(1).execute().data or []

@@ -1,4 +1,12 @@
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Yo'llar (masalan "/api/v1/courses") o'zi "/api/v1" qo'shadi. Shuning uchun base
+// URL oxiridagi "/api/v1" yoki "/api" ni olib tashlaymiz — env ".../api/v1" bo'lsa ham
+// yoki faqat origin bo'lsa ham to'g'ri ishlaydi (ikki marta /api/v1 bo'lmaydi).
+const apiBaseUrl =
+  (process.env.NEXT_PUBLIC_API_BASE_URL ?? "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/i, "")
+    .replace(/\/api$/i, "") || undefined;
 const adminApiKey = process.env.NEXT_PUBLIC_ADMIN_API_KEY;
 const requestTimeoutMs = Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS ?? 25000);
 

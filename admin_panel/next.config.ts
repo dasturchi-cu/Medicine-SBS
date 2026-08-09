@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
-const backendOrigin = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/+$/, "");
+// Yo'llar o'zi "/api/v1" qo'shadi — shuning uchun base oxiridagi "/api/v1"/"api" ni olib tashlaymiz.
+const backendOrigin = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "")
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/i, "")
+  .replace(/\/api$/i, "");
 
 function supabaseImageHostname(): string | null {
   const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
