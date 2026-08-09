@@ -30,18 +30,27 @@ def _r2_client():
     )
 
 
-def upload_bytes(*, data: bytes, filename: str, folder: str, content_type: str) -> dict[str, str]:
-    """Faylni R2'ga yuklaydi. {"path": key, "url": public_url} qaytaradi."""
+def upload_bytes(
+    *, data: bytes, filename: str, folder: str, content_type: str, key: str | None = None
+) -> dict[str, str]:
+    """Faylni R2'ga yuklaydi. {"path": key, "url": public_url} qaytaradi.
+
+    `key` berilsa — aynan shu nom bilan saqlanadi (barqaror URL uchun, masalan
+    medicine-sbs.apk). Aks holda tasodifiy nom generatsiya qilinadi.
+    """
     s = get_settings()
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    safe_folder = (folder or "uploads").strip("/")
-    key = f"{safe_folder}/{uuid.uuid4().hex}.{ext}"
+    if key:
+        object_key = key.strip("/")
+    else:
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+        safe_folder = (folder or "uploads").strip("/")
+        object_key = f"{safe_folder}/{uuid.uuid4().hex}.{ext}"
     _r2_client().put_object(
         Bucket=s.r2_bucket,
-        Key=key,
+        Key=object_key,
         Body=data,
         ContentType=content_type or "application/octet-stream",
         CacheControl="public, max-age=31536000",
     )
     base = (s.r2_public_base_url or "").rstrip("/")
-    return {"path": key, "url": f"{base}/{key}"}
+    return {"path": object_key, "url": f"{base}/{object_key}"}

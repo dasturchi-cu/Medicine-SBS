@@ -56,9 +56,11 @@ def _require_admin_key(
 async def upload_file(
     file: UploadFile = File(...),
     folder: str = Form(default="uploads"),
+    key: str | None = Form(default=None),
     _: None = Depends(_require_admin_key),
 ):
-    """Admin panel faylni shu yerga yuboradi; backend Cloudflare R2'ga yuklaydi."""
+    """Admin panel faylni shu yerga yuboradi; backend Cloudflare R2'ga yuklaydi.
+    `key` berilsa — aynan shu nom bilan saqlanadi (barqaror URL uchun)."""
     data = await file.read()
     if not data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bo'sh fayl.")
@@ -68,6 +70,7 @@ async def upload_file(
             filename=file.filename or "file.bin",
             folder=folder,
             content_type=file.content_type or "application/octet-stream",
+            key=key,
         )
     except RuntimeError as error:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(error))
