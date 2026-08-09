@@ -21,6 +21,7 @@ import '../../../../core/state/books_state.dart';
 import '../../../../core/state/course_stats_state.dart';
 import '../../../../core/state/progress_controller.dart';
 import '../../../../core/state/slides_state.dart';
+import '../../../../core/state/notifications_state.dart';
 import '../../../../core/theme/design_system.dart';
 import '../../../../widgets/category_chip.dart';
 import '../../../../widgets/course_card.dart';
@@ -332,10 +333,24 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                       borderRadius: BorderRadius.circular(AppRadius.input),
                       boxShadow: AppShadows.soft,
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.notifications_none),
-                      onPressed: () {
-                        context.push(AppRoutes.notifications);
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final unread = ref
+                                .watch(notificationsFeedProvider)
+                                .valueOrNull
+                                ?.where((n) => !n.viewed)
+                                .length ??
+                            0;
+                        return IconButton(
+                          icon: Badge.count(
+                            count: unread,
+                            isLabelVisible: unread > 0,
+                            child: const Icon(Icons.notifications_none),
+                          ),
+                          onPressed: () {
+                            context.push(AppRoutes.notifications);
+                          },
+                        );
                       },
                     ),
                   ),

@@ -103,7 +103,9 @@ class _RankingPageState extends ConsumerState<RankingPage>
                 builder: (ctx) {
                   return AlertDialog(
                     title: Text(ctx.tr('ranking_info_title')),
-                    content: Text(ctx.tr('ranking_info_body')),
+                    content: Text(
+                      ctx.tr('ranking_info_body').replaceAll('\\n', '\n'),
+                    ),
                     actions: [
                       FilledButton(
                         onPressed: () => Navigator.of(ctx).pop(),
