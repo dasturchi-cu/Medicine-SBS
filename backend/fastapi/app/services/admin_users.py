@@ -251,12 +251,22 @@ def get_user_overview(client: Client, *, user_id: str) -> UserOverviewResponse:
 
     progress_rows = (
         client.table("video_progress")
-        .select("lesson_id,watched_sec,completed,updated_at,lessons!inner(course_id)")
+        .select("lesson_id,watched_sec,completed,updated_at")
         .eq("user_id", user_id)
         .order("updated_at", desc=True)
         .limit(5000)
         .execute()
     ).data or []
+    # lesson -> course_id xaritasi (PostgREST embed o'rniga alohida olamiz).
+    _lesson_ids = list({str(r.get("lesson_id")) for r in progress_rows if r.get("lesson_id")})
+    _course_by_lesson: dict[str, str] = {}
+    if _lesson_ids:
+        _lrows = client.table("lessons").select("id,course_id").in_("id", _lesson_ids).execute().data or []
+        _course_by_lesson = {str(l.get("id")): str(l.get("course_id") or "") for l in _lrows}
+    for _r in progress_rows:
+        _cid = _course_by_lesson.get(str(_r.get("lesson_id")))
+        if _cid:
+            _r["lessons"] = {"course_id": _cid}
     watched_lessons_count = len({str(row.get("lesson_id") or "") for row in progress_rows if row.get("lesson_id")})
     completed_lessons_count = len([row for row in progress_rows if row.get("completed")])
     watched_seconds_total = sum(int(row.get("watched_sec") or 0) for row in progress_rows)

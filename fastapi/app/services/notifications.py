@@ -160,19 +160,31 @@ def create_notification(client: Client, payload: NotificationCreate) -> Notifica
 
 def list_user_notification_feed(client: Client, *, user_id: str, limit: int = 100) -> list[NotificationFeedItem]:
     try:
-        deliveries_resp = (
+        deliveries = (
             client.table("notification_deliveries")
-            .select("viewed_at, notifications!inner(id,title,message,image_url,created_at)")
+            .select("notification_id,viewed_at,delivered_at")
             .eq("user_id", user_id)
             .order("delivered_at", desc=True)
             .limit(limit)
             .execute()
-        )
-        deliveries = deliveries_resp.data or []
+        ).data or []
+        if not deliveries:
+            return []
+        # Bildirishnoma tafsilotlarini alohida olamiz (PostgREST embed o'rniga).
+        notif_ids = list({str(d.get("notification_id")) for d in deliveries if d.get("notification_id")})
+        notif_by_id: dict[str, dict] = {}
+        if notif_ids:
+            nrows = (
+                client.table("notifications")
+                .select("id,title,message,image_url,created_at")
+                .in_("id", notif_ids)
+                .execute()
+            ).data or []
+            notif_by_id = {str(n.get("id")): n for n in nrows}
 
         result: list[NotificationFeedItem] = []
         for row in deliveries:
-            notification = row.get("notifications")
+            notification = notif_by_id.get(str(row.get("notification_id")))
             if not isinstance(notification, dict):
                 continue
             sent_at = notification.get("created_at")

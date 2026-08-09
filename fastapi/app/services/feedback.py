@@ -23,12 +23,17 @@ def get_feedback_stats(client: Client, *, content_key: str, user_id: str | None 
         .eq("content_key", content_key)
         .execute()
     ).data or []
-    legacy_rows = (
-        client.table("ratings")
-        .select("stars,user_id")
-        .eq("course_id", content_key)
-        .execute()
-    ).data or []
+    # Legacy `ratings.course_id` — uuid. content_key uuid bo'lmasa (app-level kalit),
+    # so'rov xato beradi; shuning uchun himoyalaymiz.
+    try:
+        legacy_rows = (
+            client.table("ratings")
+            .select("stars,user_id")
+            .eq("course_id", content_key)
+            .execute()
+        ).data or []
+    except Exception:
+        legacy_rows = []
     by_user = _merged_rating_by_user(legacy_rows=legacy_rows, app_rows=app_rows)
     if not by_user:
         return comments_count, 0.0, 0, None

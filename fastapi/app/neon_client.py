@@ -12,11 +12,33 @@ Qo'llab-quvvatlanadigan operatorlar (kodda ishlatilganlari):
 
 from __future__ import annotations
 
+from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
+
+
+def _jsonify(value: Any) -> Any:
+    """psycopg native turlarini Supabase(JSON) kabi turlarga aylantiradi.
+
+    Kod Supabase JSON javobiga moslangan (uuid/sana — string). psycopg esa
+    UUID/datetime/Decimal obyektlarini qaytaradi — ularni string/float qilamiz.
+    """
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
+
+
+def _jsonify_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {k: _jsonify(v) for k, v in row.items()}
 
 
 class _Result:
@@ -155,7 +177,17 @@ class QueryBuilder:
         if cols == "*" or cols == "":
             return sql.SQL("*")
         parts = [c.strip() for c in cols.split(",") if c.strip()]
-        return sql.SQL(", ").join(sql.Identifier(p) for p in parts)
+        out: list[sql.Composable] = []
+        for p in parts:
+            if p == "*":
+                out.append(sql.SQL("*"))
+            elif "(" in p or "!" in p:
+                # PostgREST "embed" (masalan book_categories(name), notifications!inner(...))
+                # — bu SQL emas; o'tkazib yuboramiz (servis kerakli ma'lumotni alohida oladi).
+                continue
+            else:
+                out.append(sql.Identifier(p))
+        return sql.SQL(", ").join(out) if out else sql.SQL("*")
 
     def _order_limit_sql(self) -> sql.Composable:
         out = sql.SQL("")
@@ -283,7 +315,7 @@ class QueryBuilder:
                     rows = cur.fetchall()
                 except Exception:
                     rows = []
-        return _Result(rows)
+        return _Result([_jsonify_row(r) for r in rows])
 
 
 class RPCBuilder:
@@ -305,7 +337,7 @@ class RPCBuilder:
             with conn.cursor(row_factory=dict_row) as cur:
                 cur.execute(query, values)
                 rows = cur.fetchall()
-        return _Result(rows)
+        return _Result([_jsonify_row(r) for r in rows])
 
 
 class NeonClient:

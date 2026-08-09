@@ -177,10 +177,20 @@ def delete_lesson_asset(client: Client, *, asset_id: str) -> None:
 
 
 def list_books(client: Client, *, course_id: str | None = None) -> list[BookItem]:
-    query = client.table("book_items").select("*,book_categories(name)").order("created_at", desc=True)
+    query = client.table("book_items").select("*").order("created_at", desc=True)
     if course_id:
         query = query.eq("course_id", course_id)
     rows = query.execute().data or []
+    # Kategoriya nomlarini alohida olamiz (PostgREST embed SQL'da yo'q).
+    cat_ids = list({str(r.get("category_id")) for r in rows if r.get("category_id")})
+    names: dict[str, str] = {}
+    if cat_ids:
+        cats = client.table("book_categories").select("id,name").in_("id", cat_ids).execute().data or []
+        names = {str(c.get("id")): str(c.get("name") or "") for c in cats}
+    for r in rows:
+        cid = str(r.get("category_id")) if r.get("category_id") else None
+        if cid and names.get(cid):
+            r["book_categories"] = {"name": names[cid]}
     return [_to_book(row) for row in rows]
 
 
