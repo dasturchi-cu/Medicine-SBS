@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -17,6 +18,23 @@ class CourseVisual extends StatefulWidget {
 class _CourseVisualState extends State<CourseVisual>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
+
+  // base64 rasmni bir marta dekodlaymiz (har rebuild'da qayta dekodlanib pir-pir qilmasin).
+  Uint8List? _cachedBytes;
+  String? _cachedKey;
+
+  Uint8List? _decodeDataUrl(String rawImage) {
+    if (_cachedKey == rawImage) return _cachedBytes;
+    final comma = rawImage.indexOf(',');
+    if (comma <= 0) return null;
+    try {
+      _cachedBytes = base64Decode(rawImage.substring(comma + 1));
+      _cachedKey = rawImage;
+      return _cachedBytes;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -38,21 +56,18 @@ class _CourseVisualState extends State<CourseVisual>
     final rawImage = widget.imageUrl.trim();
     if (rawImage.isNotEmpty) {
       if (rawImage.startsWith('data:image')) {
-        final comma = rawImage.indexOf(',');
-        if (comma > 0) {
-          try {
-            final bytes = base64Decode(rawImage.substring(comma + 1));
-            return Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9F0FF),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.memory(bytes, fit: BoxFit.cover),
-            );
-          } catch (_) {}
+        final bytes = _decodeDataUrl(rawImage);
+        if (bytes != null) {
+          return Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9F0FF),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true),
+          );
         }
       }
       if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
@@ -67,6 +82,7 @@ class _CourseVisualState extends State<CourseVisual>
           child: Image.network(
             rawImage,
             fit: BoxFit.cover,
+            gaplessPlayback: true,
             errorBuilder: (_, _, _) => const Icon(Icons.image_outlined, color: Color(0xFF1E6BB8)),
           ),
         );

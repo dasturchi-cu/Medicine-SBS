@@ -69,6 +69,7 @@ class MyCoursesPage extends ConsumerWidget {
 
                 return CourseCard(
                   animationDelayMs: (index % 8) * 55,
+                  videoCountOnly: true,
                   visualKind:
                       c.titleUz == 'Xususiy Nevrologiya (Bakalavr uchun)'
                       ? 'xususiy_bachelor'

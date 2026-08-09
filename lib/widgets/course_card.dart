@@ -20,6 +20,7 @@ class CourseCard extends StatelessWidget {
     this.onMessagePressed,
     this.animationDelayMs = 0,
     this.showStats = true,
+    this.videoCountOnly = false,
   });
 
   final String visualKind;
@@ -39,6 +40,9 @@ class CourseCard extends StatelessWidget {
   /// Fanlar (subjects) ro'yxatida yulduzcha reyting / video / sharh yozuvlari
   /// ko'rsatilmaydi — faqat kurs nomi va muallif qoladi.
   final bool showStats;
+
+  /// Faqat video sonini ko'rsatadi (yulduzcha va sharhlarsiz) — Fanlar/Kurslarim uchun.
+  final bool videoCountOnly;
 
   static const double _statIcon = 14;
 
@@ -137,7 +141,16 @@ class CourseCard extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        if (!showStats)
+                        if (videoCountOnly) ...[
+                          Icon(
+                            Icons.videocam_outlined,
+                            size: _statIcon,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(videoCountText, maxLines: 1, style: statStyle),
+                          const Spacer(),
+                        ] else if (!showStats)
                           const Spacer()
                         else
                         Flexible(

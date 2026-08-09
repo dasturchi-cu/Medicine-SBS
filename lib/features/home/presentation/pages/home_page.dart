@@ -683,7 +683,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
                 return CourseCard(
                   animationDelayMs: (index % 8) * 55,
-                  showStats: false,
+                  videoCountOnly: true,
                   visualKind: c.titleUz == 'Xususiy Nevrologiya (Bakalavr uchun)'
                       ? 'xususiy_bachelor'
                       : c.titleUz == 'Umumiy Nevrologiya (Bakalavr uchun)'
