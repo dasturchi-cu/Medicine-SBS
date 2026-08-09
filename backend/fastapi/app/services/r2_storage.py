@@ -45,12 +45,16 @@ def upload_bytes(
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
         safe_folder = (folder or "uploads").strip("/")
         object_key = f"{safe_folder}/{uuid.uuid4().hex}.{ext}"
+    # APK kabi yangilanadigan fayllar keshda qotib qolmasin — aks holda brauzer
+    # eski/buzuq nusxani beradi va "paket invalid" chiqadi. Rasmlar esa uzoq keshlanadi.
+    is_apk = object_key.lower().endswith(".apk")
+    cache_control = "no-cache, must-revalidate" if is_apk else "public, max-age=31536000"
     _r2_client().put_object(
         Bucket=s.r2_bucket,
         Key=object_key,
         Body=data,
         ContentType=content_type or "application/octet-stream",
-        CacheControl="public, max-age=31536000",
+        CacheControl=cache_control,
     )
     base = (s.r2_public_base_url or "").rstrip("/")
     return {"path": object_key, "url": f"{base}/{object_key}"}

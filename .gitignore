@@ -52,3 +52,8 @@ app.*.map.json
 backend/fastapi/.env
 admin_panel/.env.local
 !**/.env.example
+
+# Android signing (release keystore — MAXFIY, hech qachon commit qilinmasin!)
+android/key.properties
+*.jks
+*.keystore
