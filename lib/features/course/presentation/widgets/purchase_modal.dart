@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/providers.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/state/auth_controller.dart';
-import '../../../../core/state/progress_controller.dart';
-import '../../../../core/state/purchase_controller.dart';
 import '../../../../core/services/telegram_service.dart';
 
 Future<void> showPurchaseModal({
@@ -56,21 +53,6 @@ class _PurchaseModalContent extends ConsumerStatefulWidget {
 class _PurchaseModalContentState extends ConsumerState<_PurchaseModalContent> {
   final TelegramService _telegramService = TelegramService();
   bool _loading = false;
-
-  ({String? courseId, String? sectionId}) _resolvePurchaseTarget(String? rawCourseId) {
-    final value = (rawCourseId ?? '').trim();
-    if (value.isEmpty) return (courseId: null, sectionId: null);
-    const marker = '_base_';
-    final markerIndex = value.indexOf(marker);
-    if (markerIndex > 0 && markerIndex + marker.length < value.length) {
-      final courseId = value.substring(0, markerIndex).trim();
-      final sectionId = value.substring(markerIndex + marker.length).trim();
-      if (courseId.isNotEmpty && sectionId.isNotEmpty) {
-        return (courseId: courseId, sectionId: sectionId);
-      }
-    }
-    return (courseId: value, sectionId: null);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,31 +141,10 @@ class _PurchaseModalContentState extends ConsumerState<_PurchaseModalContent> {
 
                           try {
                             setState(() => _loading = true);
-                            final target = _resolvePurchaseTarget(widget.courseId);
-                            final platformPurchase =
-                                (target.courseId ?? '').trim().isNotEmpty;
-                            if (platformPurchase) {
-                              await ref.read(purchasesRepositoryProvider).createPurchase(
-                                    userId: auth.userId!,
-                                    courseId: target.courseId,
-                                    sectionId: target.sectionId,
-                                  );
-                              if (target.sectionId != null && target.courseId != null) {
-                                ref
-                                    .read(purchaseControllerProvider.notifier)
-                                    .purchaseBase(target.courseId!, target.sectionId!);
-                                ref
-                                    .read(progressControllerProvider.notifier)
-                                    .enroll(target.courseId!);
-                              } else if (target.courseId != null) {
-                                ref
-                                    .read(purchaseControllerProvider.notifier)
-                                    .purchaseCourse(target.courseId!);
-                                ref
-                                    .read(progressControllerProvider.notifier)
-                                    .enroll(target.courseId!);
-                              }
-                            }
+                            // MUHIM: bu yerda kurs OCHILMAYDI/sotib olinmaydi — faqat
+                            // Telegram orqali so'rov yuboriladi. Kursni admin panel orqali
+                            // qo'lda ochib beradi (kitoblardagi grant kabi). Aks holda
+                            // tugmani bosgan zahoti kurs tekinga ochilib qolardi.
                             final opened = await _telegramService.openTelegram(
                               courseName: widget.courseName,
                               userId: auth.userId!,
@@ -200,7 +161,7 @@ class _PurchaseModalContentState extends ConsumerState<_PurchaseModalContent> {
                               SnackBar(
                                 content: Text(
                                   opened
-                                      ? 'So‘rov yuborildi. Kurs admin tasdiqlagandan keyin ochiladi.'
+                                      ? 'So‘rov yuborildi. Admin tasdiqlagandan keyin kurs ochiladi.'
                                       : 'Telegram havolasini ochib bo‘lmadi',
                                 ),
                               ),

@@ -29,7 +29,7 @@ export default function AdsPage() {
     price: "",
     image: "",
     telegram: "Mr_Xusanboy",
-    isActive: false,
+    isActive: true,
   });
   const [editValues, setEditValues] = useState({
     title: "",
@@ -37,7 +37,7 @@ export default function AdsPage() {
     price: "",
     image: "",
     telegram: "Mr_Xusanboy",
-    isActive: false,
+    isActive: true,
   });
   const statusModal = useStatusModal();
 
@@ -181,7 +181,7 @@ export default function AdsPage() {
         price: "",
         image: "",
         telegram: "Mr_Xusanboy",
-        isActive: false,
+        isActive: true,
       });
     } catch (error) {
       notifyError(error instanceof Error ? error.message : "Ad qo'shilmadi.");
@@ -191,8 +191,8 @@ export default function AdsPage() {
   return (
     <section className="admin-page space-y-4">
       <p className="rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-slate-700">
-        Bu yerda <strong>Telegramdagi tashqi kurslar</strong> (maxfiy kanal va hokazo) uchun reklama joylanadi — ilovadagi onlayn kurslar ro‘yxati bilan bog‘lanmaydi. Yangi yozuvlar{" "}
-        <strong>yashirin</strong>; ilovada chiqishi uchun pastdagi «Ilovada ko‘rsatish»ni yoqing.
+        Bu yerda <strong>Telegramdagi tashqi kurslar</strong> (maxfiy kanal va hokazo) uchun reklama joylanadi — ilovadagi onlayn kurslar ro‘yxati bilan bog‘lanmaydi. Yangi reklama{" "}
+        <strong>avtomatik ko‘rinadi</strong>; yashirish kerak bo‘lsa «Tahrirlash» orqali «Ilovada ko‘rsatish»ni o‘chiring.
       </p>
       <form onSubmit={onSubmit} className="surface-card grid gap-3 p-4 lg:grid-cols-6">
         <Field label="Sarlavha" value={formValues.title} onChange={(value) => setFormValues((prev) => ({ ...prev, title: value }))} className="lg:col-span-2" />
@@ -229,19 +229,6 @@ export default function AdsPage() {
           <p className="text-xs text-slate-500">
             «Sotib olish» bosilganda foydalanuvchi aynan shu akkauntga yozish uchun Telegram ochiladi (platforma kursiga ulanmaydi).
           </p>
-        </div>
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 lg:col-span-6">
-          <div>
-            <Label htmlFor="ad-active-create" className="text-sm font-medium">
-              Ilovada ko‘rsatish
-            </Label>
-            <p className="text-xs text-slate-500">O‘chiq bo‘lsa, «Kanal yangiliklari»da chiqmaydi.</p>
-          </div>
-          <Switch
-            id="ad-active-create"
-            checked={formValues.isActive}
-            onCheckedChange={(v) => setFormValues((prev) => ({ ...prev, isActive: Boolean(v) }))}
-          />
         </div>
         <Button type="submit" className="h-10 rounded-xl px-4 lg:col-span-6">
           Reklamani saqlash
