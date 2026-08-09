@@ -132,6 +132,21 @@ class AuthService {
     return _currentUser;
   }
 
+  /// Ilova ochilganda chaqiriladi — app open sonini oshiradi (aktivlik statistikasi).
+  Future<void> reportAppOpen(String userId) async {
+    final baseUrl = getApiBaseUrl();
+    if (baseUrl.isEmpty || userId.trim().isEmpty) return;
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/api/v1/mobile/app-open'),
+            headers: const {'Content-Type': 'application/json'},
+            body: jsonEncode({'user_id': userId}),
+          )
+          .timeout(const Duration(seconds: 8));
+    } catch (_) {}
+  }
+
   Future<UserAccessStatus?> checkUserAccess(String userId) async {
     final baseUrl = getApiBaseUrl();
     if (baseUrl.isEmpty || userId.trim().isEmpty) return null;

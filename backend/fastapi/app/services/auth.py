@@ -43,6 +43,14 @@ def mobile_login(client: Client, payload: MobileLoginRequest, *, admin_contact: 
 
     # Device lock: one account => one primary device
     user_id = str(user["id"])
+
+    # Login sonini oshiramiz (aktivlik statistikasi).
+    try:
+        _lc = client.table("users").select("login_count").eq("id", user_id).limit(1).execute().data or []
+        _n = int((_lc[0].get("login_count") if _lc else 0) or 0)
+        client.table("users").update({"login_count": _n + 1}).eq("id", user_id).execute()
+    except Exception:
+        pass
     device_resp = (
         client.table("user_devices")
         .select("*")

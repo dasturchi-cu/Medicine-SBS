@@ -75,6 +75,7 @@ class AuthController extends Notifier<AuthState> {
       Future.microtask(() {
         ref.read(purchaseControllerProvider.notifier).bindRealtime(user.id);
         ref.read(purchaseControllerProvider.notifier).syncFromBackend(user.id);
+        ref.read(authServiceProvider).reportAppOpen(user.id);
         _verifyUserAccess(user.id);
       });
       _startAccessTimer(user.id);

@@ -59,8 +59,8 @@ def list_admin_users(client: Client) -> list[AdminUserItem]:
                     name=str(row.get("full_name") or "Foydalanuvchi"),
                     email=str(row.get("phone") or ""),
                     registration_date=created[:10] if created else "",
-                    login_count=session_count_map.get(row_user_id, 0),
-                    app_open_count=app_open_map.get(row_user_id, 0),
+                    login_count=int(row.get("login_count") or 0),
+                    app_open_count=int(row.get("app_open_count") or 0),
                     is_blocked=bool(row.get("is_blocked")),
                 )
             )
