@@ -28,6 +28,7 @@ import '../../../../widgets/course_card.dart';
 import '../../../../widgets/course_stats_comments_sheet.dart';
 import '../../../course/presentation/widgets/purchase_modal.dart';
 import '../providers/home_providers.dart';
+import 'books_page.dart' show showLockedBookSheet;
 
 /// Yuqori ko'k slayd uchun `home_slides.course_id`; bo'sh bo'lsa sarlavha bo'yicha bitta mos kurs qidiriladi.
 String? _resolveSlideCourseId(String title, String apiCourseId, List<Course> courses) {
@@ -767,18 +768,32 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                                       borderRadius: BorderRadius.circular(10),
                                       side: BorderSide(color: Colors.black.withValues(alpha: 0.06)),
                                     ),
-                                    leading: const Icon(Icons.menu_book_outlined),
+                                    leading: Icon(
+                                      book.isLocked ? Icons.lock_outline : Icons.menu_book_outlined,
+                                      color: book.isLocked ? AppColors.primary : null,
+                                    ),
                                     title: Text(
                                       book.title,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     subtitle: Text(
-                                      book.author.isEmpty ? 'Muallif ko‘rsatilmagan' : book.author,
+                                      book.isLocked
+                                          ? "${_formatBookPrice(book.priceUzs)} so'm · Qulf 🔒"
+                                          : (book.author.isEmpty ? 'Muallif ko‘rsatilmagan' : book.author),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    onTap: () => context.push('${AppRoutes.bookReader}?id=${book.id}'),
+                                    trailing: book.isLocked
+                                        ? const Icon(Icons.lock_outline, size: 18, color: AppColors.primary)
+                                        : null,
+                                    onTap: () {
+                                      if (book.isLocked) {
+                                        showLockedBookSheet(context, ref, book);
+                                      } else {
+                                        context.push('${AppRoutes.bookReader}?id=${book.id}');
+                                      }
+                                    },
                                   ),
                                 ),
                               )),
@@ -794,7 +809,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                           width: double.infinity,
                           child: FilledButton(
                             onPressed: () => context.push(AppRoutes.books),
-                            child: Text((booksAsync.valueOrNull ?? const []).isEmpty ? "Kitob qo'shilgach shu yerda chiqadi" : "Barcha kitoblarni ochish"),
+                            child: Text((booksAsync.valueOrNull ?? const []).isEmpty ? "Kitob qo'shilgach shu yerda chiqadi" : "Barcha kitoblar"),
                           ),
                         ),
                       ],
@@ -922,6 +937,11 @@ class _NewsItem {
   final double rating;
   final int commentCount;
   final String priceText;
+}
+
+String _formatBookPrice(double v) {
+  final s = v.toStringAsFixed(0);
+  return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
 }
 
 Uint8List? _decodeDataImage(String value) {

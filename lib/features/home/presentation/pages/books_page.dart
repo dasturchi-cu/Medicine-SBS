@@ -16,10 +16,9 @@ String _formatPrice(double v) {
   return s.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]} ');
 }
 
-class BooksPage extends ConsumerWidget {
-  const BooksPage({super.key});
-
-  Future<void> _showLockedBook(BuildContext context, WidgetRef ref, BookItemModel item) async {
+/// Qulflangan kitob bosilганда narx + tavsif + Telegram modalini ko'rsatadi.
+/// Home sahifasidagi mini-ro'yxat va Kitoblar sahifasi ikkalasida ishlatiladi.
+Future<void> showLockedBookSheet(BuildContext context, WidgetRef ref, BookItemModel item) async {
     final auth = ref.read(authControllerProvider);
     await showModalBottomSheet<void>(
       context: context,
@@ -68,6 +67,7 @@ class BooksPage extends ConsumerWidget {
                       userId: auth.userId ?? 'mehmon',
                       courseId: item.id,
                       userName: auth.name,
+                      userPhone: auth.email,
                     );
                     if (ctx.mounted) Navigator.of(ctx).pop();
                   },
@@ -78,7 +78,10 @@ class BooksPage extends ConsumerWidget {
         );
       },
     );
-  }
+}
+
+class BooksPage extends ConsumerWidget {
+  const BooksPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -130,7 +133,7 @@ class BooksPage extends ConsumerWidget {
                   ),
                   onTap: () {
                     if (locked) {
-                      _showLockedBook(context, ref, item);
+                      showLockedBookSheet(context, ref, item);
                     } else {
                       context.push('${AppRoutes.bookReader}?id=${item.id}');
                     }

@@ -19,7 +19,17 @@ from uuid import UUID
 
 from psycopg import sql
 from psycopg.rows import dict_row
+from psycopg.types.json import Json
 from psycopg_pool import ConnectionPool
+
+
+def _adapt_param(value: Any) -> Any:
+    """dict qiymatlarni jsonb ustunlar uchun to'g'ri adaptatsiya qiladi.
+    psycopg dict'ni o'zi qabul qilmaydi — Json() bilan o'raymiz (audit_logs.metadata kabi).
+    list'ni o'ramaymiz — psycopg uni Postgres array'ga o'zi aylantiradi."""
+    if isinstance(value, dict):
+        return Json(value)
+    return value
 
 
 def _jsonify(value: Any) -> Any:
@@ -232,7 +242,7 @@ class QueryBuilder:
             set_items = [
                 sql.SQL("{} = %s").format(sql.Identifier(k)) for k in self._payload
             ]
-            set_params = list(self._payload.values())
+            set_params = [_adapt_param(v) for v in self._payload.values()]
             where, where_params = self._where_sql()
             query = (
                 sql.SQL("UPDATE ")
@@ -255,7 +265,7 @@ class QueryBuilder:
             for row in rows:
                 placeholders = sql.SQL(", ").join(sql.Placeholder() * len(columns))
                 values_sql.append(sql.SQL("({})").format(placeholders))
-                params.extend(row.get(c) for c in columns)
+                params.extend(_adapt_param(row.get(c)) for c in columns)
             query = (
                 sql.SQL("INSERT INTO ")
                 + table

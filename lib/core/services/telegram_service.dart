@@ -15,18 +15,16 @@ class TelegramService {
     if (recipient.startsWith('@')) recipient = recipient.substring(1);
     if (recipient.isEmpty) recipient = _adminUsername;
 
-    final normalizedCourseId = (courseId ?? '').trim().isEmpty ? 'noma\'lum' : courseId!.trim();
     final normalizedName = (userName ?? '').trim().isEmpty ? '-' : userName!.trim();
     final normalizedPhone = (userPhone ?? '').trim().isEmpty ? '-' : userPhone!.trim();
+    // User ID / Kurs ID ataylab yuborilmaydi — admin ism va telefon orqali topadi.
     final message = '''
 Salom admin.
-Menga shu kursni ochib bering, iltimos.
+Menga shuni ochib bering, iltimos:
 
-User ID: $userId
 Ism: $normalizedName
 Telefon: $normalizedPhone
-Kurs ID: $normalizedCourseId
-Kurs nomi: "$courseName"
+Nomi: "$courseName"
 ''';
     final encoded = Uri.encodeComponent(message);
     final appUri = Uri.parse(

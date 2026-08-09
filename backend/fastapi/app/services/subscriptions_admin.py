@@ -155,14 +155,17 @@ def revoke_purchase_admin(client: Client, *, entitlement_id: str) -> dict[str, s
                     {"notification_id": notification_id, "user_id": user_id}
                 ).execute()
                 notification_sent = True
-    client.table("audit_logs").insert(
-        {
-            "actor_type": "admin",
-            "actor_id": "admin_panel",
-            "action": "purchase_revoked",
-            "entity_type": "user_entitlements",
-            "entity_id": entitlement_id,
-            "metadata": {"user_id": user_id, "course_id": str(target.get("course_id") or "")},
-        }
-    ).execute()
+    try:
+        client.table("audit_logs").insert(
+            {
+                "actor_type": "admin",
+                "actor_id": "admin_panel",
+                "action": "purchase_revoked",
+                "entity_type": "user_entitlements",
+                "entity_id": entitlement_id,
+                "metadata": {"user_id": user_id, "course_id": str(target.get("course_id") or "")},
+            }
+        ).execute()
+    except Exception as error:  # audit yozuv muhim emas — bekor qilishni buzmasin
+        logger.warning("audit_logs insert failed (revoke still ok): %s", error)
     return {"revoked": True, "notification_sent": notification_sent, "detail": "Xarid bekor qilindi."}
