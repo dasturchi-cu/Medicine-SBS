@@ -67,6 +67,9 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
           mute: false,
           forceHD: false,
           enableCaption: true,
+          // YouTube'ning O'Z boshqaruvi yashiriladi — bitta (bizning) boshqaruv qoladi
+          // (ikkita ikon bo'lmaydi) va maxsus to'liq ekran (majburiy landscape) ishlaydi.
+          hideControls: true,
         ),
       )..addListener(_handleYoutubeProgress);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -265,31 +268,20 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   }
 
   Widget _buildYoutube() {
-    // YouTube uchun pleyerning O'Z boshqaruvidan foydalanamiz: bitta to'plam
-    // (ikkita play/pause bo'lmaydi), silliq ±o'tkazish va built-in to'liq ekran
-    // (katta/kichik qilganda pozitsiya saqlanadi). Maxsus overlay faqat native uchun.
+    // YouTube'ning o'z boshqaruvi yashirilgan (hideControls) — bitta bizning boshqaruv.
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: YoutubePlayerBuilder(
-        player: YoutubePlayer(
-          controller: _ytController!,
-          showVideoProgressIndicator: true,
-          progressIndicatorColor: const Color(0xFF1E6BB8),
-          progressColors: const ProgressBarColors(
-            playedColor: Color(0xFF1E6BB8),
-            handleColor: Color(0xFF1E6BB8),
-          ),
-          bottomActions: const [
-            CurrentPosition(),
-            SizedBox(width: 8),
-            ProgressBar(isExpanded: true),
-            SizedBox(width: 8),
-            RemainingDuration(),
-            PlaybackSpeedButton(),
-            FullScreenButton(),
-          ],
+      child: SizedBox(
+        height: widget.height,
+        child: _VideoShell(
+          isYoutube: true,
+          ytController: _ytController!,
+          speed: _speed,
+          volume: _volume,
+          onSpeed: _setSpeed,
+          onVolume: _setVolume,
+          onFullscreen: _openFullscreen,
         ),
-        builder: (context, player) => SizedBox(height: widget.height, child: player),
       ),
     );
   }
@@ -783,28 +775,27 @@ class _BottomBarState extends State<_BottomBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── seek bar (native only; YT has its own) ──
-          if (!widget.isYoutube)
-            _SeekBar(
-              fraction: fraction,
-              onChangeStart: (v) {
-                setState(() => _dragValue = v * total);
-              },
-              onChanged: (v) {
-                setState(() => _dragValue = v * total);
-              },
-              onChangeEnd: (v) {
-                final target =
-                    Duration(milliseconds: (v * total).round().clamp(0, total.round()));
-                widget.onSeek(target);
-                setState(() => _dragValue = null);
-              },
-            ),
+          // ── seek bar (native + youtube: youtube boshqaruvi yashirilgan) ──
+          _SeekBar(
+            fraction: fraction,
+            onChangeStart: (v) {
+              setState(() => _dragValue = v * total);
+            },
+            onChanged: (v) {
+              setState(() => _dragValue = v * total);
+            },
+            onChangeEnd: (v) {
+              final target =
+                  Duration(milliseconds: (v * total).round().clamp(0, total.round()));
+              widget.onSeek(target);
+              setState(() => _dragValue = null);
+            },
+          ),
 
           // ── time + buttons ──
           Row(
             children: [
-              if (!widget.isYoutube) ...[
+              ...[
                 Text(
                   _fmt(Duration(milliseconds: current.round())),
                   style: const TextStyle(
@@ -1230,6 +1221,7 @@ class _FullscreenYoutubePageState extends State<_FullscreenYoutubePage> {
         autoPlay: widget.autoPlay,
         mute: false,
         forceHD: false,
+        hideControls: true,
       ),
     );
     _controller.setPlaybackRate(_speed);
