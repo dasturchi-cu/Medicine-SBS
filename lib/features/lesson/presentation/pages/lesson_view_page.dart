@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -489,10 +490,31 @@ class _SlideViewerState extends State<_SlideViewer> {
   int? _pdfPageNumber;
   int? _pdfPageCount;
 
+  // Ixcham navigatsiya (◀ 3/29 ▶) — surganda/bosganda paydo bo'lib, 3s dan keyin yo'qoladi.
+  bool _chromeVisible = true;
+  Timer? _chromeTimer;
+
+  void _revealChrome() {
+    _chromeTimer?.cancel();
+    if (mounted) setState(() => _chromeVisible = true);
+    _chromeTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _chromeVisible = false);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncPageFromController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncPageFromController();
+      _revealChrome(); // boshda qisqa ko'rsatib, keyin yashiramiz
+    });
+  }
+
+  @override
+  void dispose() {
+    _chromeTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -526,6 +548,7 @@ class _SlideViewerState extends State<_SlideViewer> {
 
   void _onPageChanged(int index) {
     if (!mounted || widget.slides.isEmpty) return;
+    _revealChrome(); // surganda navigatsiya paydo bo'ladi
     final clamped = index.clamp(0, widget.slides.length - 1);
     if (clamped == _page) return;
     setState(() {
@@ -659,9 +682,6 @@ class _SlideViewerState extends State<_SlideViewer> {
         pdfPaginationKnown ? (_pdfPageNumber ?? 1) : (_page + 1);
     final chromeDenominator =
         pdfPaginationKnown ? _pdfPageCount! : slides.length;
-    final chromeSubtitle = pdfPaginationKnown
-        ? '$chromeNumerator-sahifa · jami $chromeDenominator ta'
-        : '${_page + 1}-chi rasm · jami ${slides.length} ta';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -799,141 +819,80 @@ class _SlideViewerState extends State<_SlideViewer> {
                 tooltip: 'Katta ko‘rish',
               ),
             ),
+            // Ixcham navigatsiya: surganda/o'zgarganda paydo bo'lib, 3s dan keyin yashiriladi.
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.58),
-                      Colors.black.withValues(alpha: 0.08),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.only(bottom: 6),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          iconSize: 28,
-                          style: IconButton.styleFrom(
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.94),
-                            foregroundColor: const Color(0xFF1E6BB8),
-                            disabledBackgroundColor:
-                                Colors.white.withValues(alpha: 0.45),
-                            disabledForegroundColor:
-                                const Color(0xFF1E6BB8).withValues(
-                              alpha: 0.35,
-                            ),
+              bottom: 12,
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: AnimatedOpacity(
+                  opacity: _chromeVisible ? 1 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.58),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _SlideNavBtn(
+                            icon: Icons.chevron_left,
+                            onTap: _chromePrevEnabled(slides) ? () => _chromePrev(controller) : null,
                           ),
-                          onPressed: _chromePrevEnabled(slides)
-                              ? () => _chromePrev(controller)
-                              : null,
-                          icon: const Icon(Icons.chevron_left),
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (slides.length > 1)
-                                SmoothPageIndicator(
-                                  controller: controller,
-                                  count: slides.length,
-                                  effect: WormEffect(
-                                    dotWidth: 7,
-                                    dotHeight: 7,
-                                    spacing: 6,
-                                    activeDotColor: const Color(0xFF1E6BB8),
-                                    dotColor: const Color(0xFF1E6BB8)
-                                        .withValues(alpha: 0.28),
-                                  ),
-                                ),
-                              if (slides.length > 1) const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.94),
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.14,
-                                      ),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '$chromeNumerator / $chromeDenominator',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Color(0xFF1E6BB8),
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 18,
-                                        height: 1.1,
-                                        letterSpacing: 0.6,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      chromeSubtitle,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: const Color(0xFF1E6BB8)
-                                            .withValues(alpha: 0.72),
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              '$chromeNumerator / $chromeDenominator',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                letterSpacing: 0.5,
                               ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          iconSize: 28,
-                          style: IconButton.styleFrom(
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.94),
-                            foregroundColor: const Color(0xFF1E6BB8),
-                            disabledBackgroundColor:
-                                Colors.white.withValues(alpha: 0.45),
-                            disabledForegroundColor:
-                                const Color(0xFF1E6BB8).withValues(
-                              alpha: 0.35,
                             ),
                           ),
-                          onPressed: _chromeNextEnabled(slides)
-                              ? () => _chromeNext(controller)
-                              : null,
-                          icon: const Icon(Icons.chevron_right),
-                        ),
-                      ],
+                          _SlideNavBtn(
+                            icon: Icons.chevron_right,
+                            onTap: _chromeNextEnabled(slides) ? () => _chromeNext(controller) : null,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Slayd navigatsiyasi uchun ixcham dumaloq tugma.
+class _SlideNavBtn extends StatelessWidget {
+  const _SlideNavBtn({required this.icon, this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return InkResponse(
+      onTap: onTap,
+      radius: 24,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(
+          icon,
+          size: 24,
+          color: enabled ? Colors.white : Colors.white38,
         ),
       ),
     );
