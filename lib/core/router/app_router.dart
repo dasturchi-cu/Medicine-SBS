@@ -183,10 +183,38 @@ class ShellScaffold extends StatelessWidget {
     }
   }
 
+  Future<bool> _confirmLeave(BuildContext context, String title, String message) async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Yoq'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Ha'),
+          ),
+        ],
+      ),
+    );
+    return res == true;
+  }
+
   Future<void> _handleBack(BuildContext context, int idx) async {
     final router = GoRouter.of(context);
     // Detail sahifa (push qilingan) bo'lsa — oddiy orqaga qaytish.
     if (router.canPop()) {
+      // Dars (video) sahifasidan chiqishда tasdiq so'raymiz.
+      final path = location.split('?').first;
+      if (path == AppRoutes.lesson) {
+        final leave = await _confirmLeave(context, 'Darsdan chiqish', 'Rostan ham darsdan chiqasizmi?');
+        if (leave) router.pop();
+        return;
+      }
       router.pop();
       return;
     }
@@ -196,24 +224,8 @@ class ShellScaffold extends StatelessWidget {
       return;
     }
     // Home'da — ilovadan chiqishni so'raymiz.
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Chiqish'),
-        content: const Text('Ilovadan chiqmoqchimisiz?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Yoq'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Ha, chiqish'),
-          ),
-        ],
-      ),
-    );
-    if (leave == true) {
+    final leave = await _confirmLeave(context, 'Chiqish', 'Ilovadan chiqmoqchimisiz?');
+    if (leave) {
       await SystemNavigator.pop();
     }
   }

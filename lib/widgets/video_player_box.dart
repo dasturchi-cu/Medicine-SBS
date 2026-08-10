@@ -265,19 +265,31 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   }
 
   Widget _buildYoutube() {
+    // YouTube uchun pleyerning O'Z boshqaruvidan foydalanamiz: bitta to'plam
+    // (ikkita play/pause bo'lmaydi), silliq ±o'tkazish va built-in to'liq ekran
+    // (katta/kichik qilganda pozitsiya saqlanadi). Maxsus overlay faqat native uchun.
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        height: widget.height,
-        child: _VideoShell(
-          isYoutube: true,
-          ytController: _ytController!,
-          speed: _speed,
-          volume: _volume,
-          onSpeed: _setSpeed,
-          onVolume: _setVolume,
-          onFullscreen: _openFullscreen,
+      child: YoutubePlayerBuilder(
+        player: YoutubePlayer(
+          controller: _ytController!,
+          showVideoProgressIndicator: true,
+          progressIndicatorColor: const Color(0xFF1E6BB8),
+          progressColors: const ProgressBarColors(
+            playedColor: Color(0xFF1E6BB8),
+            handleColor: Color(0xFF1E6BB8),
+          ),
+          bottomActions: const [
+            CurrentPosition(),
+            SizedBox(width: 8),
+            ProgressBar(isExpanded: true),
+            SizedBox(width: 8),
+            RemainingDuration(),
+            PlaybackSpeedButton(),
+            FullScreenButton(),
+          ],
         ),
+        builder: (context, player) => SizedBox(height: widget.height, child: player),
       ),
     );
   }
