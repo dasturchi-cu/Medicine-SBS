@@ -67,9 +67,6 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
           mute: false,
           forceHD: false,
           enableCaption: true,
-          // YouTube'ning O'Z boshqaruvi yashiriladi — bitta (bizning) boshqaruv qoladi
-          // (ikkita ikon bo'lmaydi) va maxsus to'liq ekran (majburiy landscape) ishlaydi.
-          hideControls: true,
         ),
       )..addListener(_handleYoutubeProgress);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -268,20 +265,30 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   }
 
   Widget _buildYoutube() {
-    // YouTube'ning o'z boshqaruvi yashirilgan (hideControls) — bitta bizning boshqaruv.
+    // YouTube'ning o'z (built-in) boshqaruvi: bitta play/pause, silliq seek,
+    // tezlik va built-in to'liq ekran. Bu ishonchli — video muzlamaydi.
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        height: widget.height,
-        child: _VideoShell(
-          isYoutube: true,
-          ytController: _ytController!,
-          speed: _speed,
-          volume: _volume,
-          onSpeed: _setSpeed,
-          onVolume: _setVolume,
-          onFullscreen: _openFullscreen,
+      child: YoutubePlayerBuilder(
+        player: YoutubePlayer(
+          controller: _ytController!,
+          showVideoProgressIndicator: true,
+          progressIndicatorColor: const Color(0xFF1E6BB8),
+          progressColors: const ProgressBarColors(
+            playedColor: Color(0xFF1E6BB8),
+            handleColor: Color(0xFF1E6BB8),
+          ),
+          bottomActions: const [
+            CurrentPosition(),
+            SizedBox(width: 8),
+            ProgressBar(isExpanded: true),
+            SizedBox(width: 8),
+            RemainingDuration(),
+            PlaybackSpeedButton(),
+            FullScreenButton(),
+          ],
         ),
+        builder: (context, player) => SizedBox(height: widget.height, child: player),
       ),
     );
   }
