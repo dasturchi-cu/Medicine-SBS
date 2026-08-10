@@ -130,6 +130,12 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
       );
     }
 
+    // Progress yuklanishini ikkala tabdan mustaqil boshlash — IndexedStack
+    // ikkala tab widgetini birdan qurayotgani uchun tab tekshirovi kerak emas.
+    if (courseId != null) {
+      _ensureInitialWatchProgressLoaded(courseId);
+    }
+
     final remoteSlides = lessonSlidesAsync.valueOrNull ?? const [];
     final lessonAssets =
         ref.watch(lessonAssetsProvider(widget.lessonId)).valueOrNull ??
@@ -201,44 +207,47 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         children: [
+          // IndexedStack — har ikkala tab ham widget tree’da doim tirik turadi.
+          // Tab almashganda VideoPlayerBox dispose bo’lmaydi → controller
+          // saqlanadi → video boshidan boshlamaydi.
           AnimatedBuilder(
             animation: _tabController,
             builder: (context, _) {
-              if (_tabController.index == 0) {
-                if (courseId != null) {
-                  _ensureInitialWatchProgressLoaded(courseId);
-                }
-                // Progress yuklanmaguncha pleyerni qurmaymiz — aks holda 0 dan
-                // boshlab, keyin qayta yaratilib "boshiga qaytardi". Yuklab bo'lgach
-                // barqaror key bilan bir marta to'g'ri joydan quramiz.
-                final progressReady = courseId == null || _progressChecked;
-                if (!progressReady) {
-                  return SizedBox(
+              final progressReady = courseId == null || _progressChecked;
+              return IndexedStack(
+                index: _tabController.index,
+                children: [
+                  // ── Tab 0: Video ───────────────────────────
+                  progressReady
+                      ? VideoPlayerBox(
+                          key: ValueKey('video:${widget.lessonId}'),
+                          url: lesson.videoUrl,
+                          height: mediaHeight,
+                          initialWatchedSec: _initialWatchedSec,
+                          onWatchProgress: (watchedSec, completed) {
+                            if (!mounted) return;
+                            if (courseId == null) return;
+                            _syncWatchProgress(
+                              courseId: courseId,
+                              watchedSec: watchedSec,
+                              completed: completed,
+                            );
+                          },
+                        )
+                      : SizedBox(
+                          height: mediaHeight,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                  // ── Tab 1: Slides ────────────────────────
+                  _SlideViewer(
+                    slides: mergedSlides,
+                    controller: _slidesController,
                     height: mediaHeight,
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                }
-                return VideoPlayerBox(
-                  key: ValueKey('video:${widget.lessonId}'),
-                  url: lesson.videoUrl,
-                  height: mediaHeight,
-                  initialWatchedSec: _initialWatchedSec,
-                  onWatchProgress: (watchedSec, completed) {
-                    if (!mounted) return;
-                    if (courseId == null) return;
-                    _syncWatchProgress(
-                      courseId: courseId,
-                      watchedSec: watchedSec,
-                      completed: completed,
-                    );
-                  },
-                );
-              }
-              return _SlideViewer(
-                slides: mergedSlides,
-                controller: _slidesController,
-                height: mediaHeight,
-                lessonId: widget.lessonId,
+                    lessonId: widget.lessonId,
+                  ),
+                ],
               );
             },
           ),

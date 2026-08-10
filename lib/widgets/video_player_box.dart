@@ -199,12 +199,9 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
 
   // ── fullscreen ──────────────────────────────
 
+  // Faqat native video uchun — YouTube o'z fullscreen'ini
+  // YoutubePlayerBuilder + OrientationBuilder orqali boshqaradi.
   Future<void> _openFullscreen() async {
-    if (_isYoutube) {
-      _ytController?.toggleFullScreenMode();
-      return;
-    }
-
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
     final wasPlaying = c.value.isPlaying;
@@ -240,6 +237,9 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
     return _buildNative();
   }
 
+  // YouTube — to'liq native YouTube style controls.
+  // YoutubePlayerBuilder qurilma burilganda GlobalKey orqali player-ni
+  // tree'da ko'chiradi (qayta yaratmaydi) → video boshidan boshlamaydi.
   Widget _buildYoutube() {
     return YoutubePlayerBuilder(
       onEnterFullScreen: () {
@@ -250,21 +250,16 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
       },
       player: YoutubePlayer(
         controller: _ytController!,
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: const Color(0xFF1E6BB8),
+        // showVideoProgressIndicator olib tashlandi — bottomActions ichidagi
+        // ProgressBar bilan ikkilanmaslik uchun.
+        progressIndicatorColor: Colors.red,
         progressColors: const ProgressBarColors(
-          playedColor: Color(0xFF1E6BB8),
-          handleColor: Color(0xFF1E6BB8),
+          playedColor: Colors.red,
+          handleColor: Colors.red,
         ),
-        bottomActions: const [
-          CurrentPosition(),
-          SizedBox(width: 8),
-          ProgressBar(isExpanded: true),
-          SizedBox(width: 8),
-          RemainingDuration(),
-          PlaybackSpeedButton(),
-          FullScreenButton(),
-        ],
+        // bottomActions belgilanmagan → YouTube default native controls:
+        // play/pause, seek bar, vaqt, fullscreen, sifat tugmalari.
+        // Bu o'zimizning custom kodlarimizni olib tashlaydi.
       ),
       builder: (context, player) => ClipRRect(
         borderRadius: BorderRadius.circular(16),
