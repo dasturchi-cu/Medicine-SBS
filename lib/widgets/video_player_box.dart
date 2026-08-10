@@ -243,10 +243,17 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   Widget _buildYoutube() {
     return YoutubePlayerBuilder(
       onEnterFullScreen: () {
+        // MUHIM: landscape'ga majburiy aylantiramiz — aks holda fullscreen portret
+        // bo'lib qolib, butun ekranni to'ldirmasdi.
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        SystemChrome.setPreferredOrientations(const [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
       },
       onExitFullScreen: () {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
       },
       player: YoutubePlayer(
         controller: _ytController!,
@@ -263,9 +270,42 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
       ),
       builder: (context, player) => ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: SizedBox(height: widget.height, child: player),
+        child: SizedBox(
+          height: widget.height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              player,
+              // Chap/o'ng ikki marta bosish: -10s / +10s (YouTube ilovasi kabi).
+              // translucent + faqat onDoubleTap -> bitta bosish/seek-bar YouTube'ga o'tadi.
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onDoubleTap: () => _seekYoutubeRelative(-10),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onDoubleTap: () => _seekYoutubeRelative(10),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  void _seekYoutubeRelative(int seconds) {
+    final c = _ytController;
+    if (c == null) return;
+    final target = c.value.position + Duration(seconds: seconds);
+    c.seekTo(target < Duration.zero ? Duration.zero : target);
   }
 
   Widget _buildNative() {
