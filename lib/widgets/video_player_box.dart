@@ -278,14 +278,20 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
             playedColor: Color(0xFF1E6BB8),
             handleColor: Color(0xFF1E6BB8),
           ),
-          bottomActions: const [
-            CurrentPosition(),
-            SizedBox(width: 8),
-            ProgressBar(isExpanded: true),
-            SizedBox(width: 8),
-            RemainingDuration(),
-            PlaybackSpeedButton(),
-            FullScreenButton(),
+          bottomActions: [
+            const CurrentPosition(),
+            const SizedBox(width: 8),
+            const ProgressBar(isExpanded: true),
+            const SizedBox(width: 8),
+            const RemainingDuration(),
+            const PlaybackSpeedButton(),
+            // Built-in FullScreenButton ListView ichida ishlamaydi — o'zimizning
+            // maxsus to'liq ekran (majburiy landscape, to'ldiradi) tugmasi.
+            IconButton(
+              icon: const Icon(Icons.fullscreen, color: Colors.white),
+              tooltip: "Katta ko'rish",
+              onPressed: _openFullscreen,
+            ),
           ],
         ),
         builder: (context, player) => SizedBox(height: widget.height, child: player),
@@ -1228,7 +1234,6 @@ class _FullscreenYoutubePageState extends State<_FullscreenYoutubePage> {
         autoPlay: widget.autoPlay,
         mute: false,
         forceHD: false,
-        hideControls: true,
       ),
     );
     _controller.setPlaybackRate(_speed);
@@ -1285,22 +1290,42 @@ class _FullscreenYoutubePageState extends State<_FullscreenYoutubePage> {
       onPopInvokedWithResult: (didPop, result) => _close(),
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: _VideoShell(
-          isYoutube: true,
-          ytController: _controller,
-          speed: _speed,
-          volume: _volume / 100,
-          onSpeed: (s) {
-            _controller.setPlaybackRate(s);
-            if (mounted) setState(() => _speed = s);
-          },
-          onVolume: (v) {
-            final pct = (v * 100).round();
-            _controller.setVolume(pct);
-            pct == 0 ? _controller.mute() : _controller.unMute();
-            if (mounted) setState(() => _volume = pct);
-          },
-          onFullscreen: _close,
+        body: Stack(
+          children: [
+            Center(
+              child: YoutubePlayer(
+                controller: _controller,
+                showVideoProgressIndicator: true,
+                progressIndicatorColor: const Color(0xFF1E6BB8),
+                progressColors: const ProgressBarColors(
+                  playedColor: Color(0xFF1E6BB8),
+                  handleColor: Color(0xFF1E6BB8),
+                ),
+                bottomActions: [
+                  const CurrentPosition(),
+                  const SizedBox(width: 8),
+                  const ProgressBar(isExpanded: true),
+                  const SizedBox(width: 8),
+                  const RemainingDuration(),
+                  const PlaybackSpeedButton(),
+                  IconButton(
+                    icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                    tooltip: 'Kichraytirish',
+                    onPressed: _close,
+                  ),
+                ],
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: _close,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
