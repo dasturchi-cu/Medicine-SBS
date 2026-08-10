@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -236,7 +237,7 @@ class _InfoTile extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -245,7 +246,7 @@ class _InfoTile extends StatelessWidget {
                   value,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: valueColor ?? Colors.black87,
+                    color: valueColor ?? AppColors.textPrimary,
                   ),
                 ),
               ],

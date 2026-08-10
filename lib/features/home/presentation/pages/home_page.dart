@@ -596,7 +596,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                         child: Text(
                           'Hozircha reklama joylanmagan',
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                color: Colors.black54,
+                                color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
@@ -743,7 +743,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                         const SizedBox(height: 8),
                         Text(
                           'Jami: ${(booksAsync.valueOrNull ?? const []).length} ta kitob',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 10),
                         if ((booksAsync.valueOrNull ?? const []).isNotEmpty) ...[
@@ -791,7 +791,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Text(
                               context.tr('books_empty'),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                             ),
                           ),
                         SizedBox(

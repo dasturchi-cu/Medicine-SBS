@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/design_system.dart';
 
 class LessonItem extends StatelessWidget {
   const LessonItem({
@@ -67,7 +68,7 @@ class LessonItem extends StatelessWidget {
             duration,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           trailing: Icon(
             locked ? Icons.lock : Icons.play_circle,

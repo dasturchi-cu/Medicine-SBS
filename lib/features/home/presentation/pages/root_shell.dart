@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 
 import '../../../../widgets/app_bottom_nav.dart';
 import 'home_page.dart';
@@ -55,7 +56,7 @@ class _PlaceholderPage extends StatelessWidget {
               child: Text(
                 'Tez orada',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.black54,
+                      color: AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
                     ),
               ),

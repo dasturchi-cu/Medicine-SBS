@@ -46,7 +46,7 @@ class MyCoursesPage extends ConsumerWidget {
                 child: Text(
                   'Hali kursga yozilmagansiz',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.black54,
+                    color: AppColors.textSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

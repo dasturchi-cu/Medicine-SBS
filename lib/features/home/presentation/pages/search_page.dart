@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -82,7 +83,7 @@ class SearchPage extends ConsumerWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.black54,
+                              color: AppColors.textSecondary,
                             ),
                       ),
                       trailing: const Icon(Icons.chevron_right),

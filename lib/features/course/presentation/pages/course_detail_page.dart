@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -113,7 +114,7 @@ class _CourseDetailPageState extends ConsumerState<CourseDetailPage> {
           Text(
             course.descriptionUz,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.black54,
+                  color: AppColors.textSecondary,
                   height: 1.35,
                 ),
           ),

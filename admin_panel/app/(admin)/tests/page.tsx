@@ -496,10 +496,6 @@ export default function TestsPage() {
       <div className="surface-card space-y-3 p-4 sm:p-6">
         <div>
           <h3 className="text-base font-semibold text-slate-900">Savollarni matndan import qilish</h3>
-          <p className="text-sm text-slate-500">
-            Word / Google Docs&apos;dan ko&apos;chiring. Har savol: birinchi qator — savol, keyingi qatorlar — variantlar.
-            To&apos;g&apos;ri javob <b>+</b> bilan, boshqalari <b>-</b> bilan. Savollar orasida bo&apos;sh qator qoldiring.
-          </p>
         </div>
         <Textarea
           rows={10}

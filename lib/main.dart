@@ -12,6 +12,7 @@ import 'core/services/auth_service.dart';
 import 'core/services/catalog_service.dart';
 import 'core/services/push_messaging.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'core/widgets/startup_guard.dart';
 import 'firebase_background_handler.dart';
 
@@ -45,29 +46,29 @@ class NeuroscienceApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final locAsync = ref.watch(localizationProvider);
+    // Kun/tun: controller AppColors.isDarkMode ni ham to'g'rilaydi.
+    final isDark = ref.watch(themeControllerProvider);
+    final appTheme = isDark ? AppTheme.dark() : AppTheme.light();
 
     return locAsync.when(
       loading: () => MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: appTheme,
         home: StartupLoadingScreen(
           onRetry: () => ref.invalidate(localizationProvider),
         ),
       ),
       error: (e, _) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
+        theme: appTheme,
         home: Scaffold(body: Center(child: Text(e.toString()))),
       ),
       data: (st) {
         return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           title: translate(st, 'app_name'),
-          theme: AppTheme.light(),
-          // Ilova doim yorug' (light) rejimda — tizim tun rejimi yoqilса ham
-          // matn ko'rinmay qolmasin (eski Neuroscience'dagi bug takrorlanmasin).
-          darkTheme: AppTheme.light(),
-          themeMode: ThemeMode.light,
+          // Kun/tun rejimi Profildagi toggle orqali boshqariladi.
+          theme: appTheme,
           routerConfig: router,
           locale: Locale(st.langCode),
           supportedLocales: const [Locale('uz'), Locale('ru'), Locale('en')],

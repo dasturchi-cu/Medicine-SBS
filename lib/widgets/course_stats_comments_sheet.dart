@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -333,7 +334,7 @@ class _CourseStatsCommentsSheetState extends ConsumerState<CourseStatsCommentsSh
                 Text(
                   '${_ratingAvg.toStringAsFixed(1)} ($_ratingCount)',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.black54,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w700,
                       ),
                 ),
@@ -377,7 +378,7 @@ class _CourseStatsCommentsSheetState extends ConsumerState<CourseStatsCommentsSh
                     return Text(
                       'Hozircha izoh yo‘q',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.black54,
+                            color: AppColors.textSecondary,
                           ),
                     );
                   }
@@ -466,7 +467,7 @@ class _CourseStatsCommentsSheetState extends ConsumerState<CourseStatsCommentsSh
                                     icon: Icon(
                                       likedByMe ? Icons.favorite : Icons.favorite_border,
                                       size: 20,
-                                      color: likedByMe ? Colors.red.shade600 : Colors.black45,
+                                      color: likedByMe ? Colors.red.shade600 : AppColors.textSecondary,
                                     ),
                                     visualDensity: VisualDensity.compact,
                                     padding: EdgeInsets.zero,

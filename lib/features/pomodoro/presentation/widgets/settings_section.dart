@@ -57,7 +57,7 @@ class SettingsSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.volume_up_outlined,
                   size: 18,
                   color: AppColors.textSecondary,

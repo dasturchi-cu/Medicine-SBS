@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'design_system.dart';
 
 class AppTheme {
-  static ThemeData light() {
+  static ThemeData light() => _build(Brightness.light);
+  static ThemeData dark() => _build(Brightness.dark);
+
+  static ThemeData _build(Brightness brightness) {
     const seed = AppColors.primary;
     final scheme = ColorScheme.fromSeed(
       seedColor: seed,
-      brightness: Brightness.light,
+      brightness: brightness,
     );
 
     return ThemeData(
@@ -40,7 +43,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.button),
           ),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
           foregroundColor: AppColors.textPrimary,
         ),
       ),
@@ -49,11 +52,11 @@ class AppTheme {
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.input),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -81,7 +82,7 @@ class _ResultPageState extends ConsumerState<ResultPage> {
                     Text(
                       'Yakuniy ball',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Colors.black54,
+                            color: AppColors.textSecondary,
                             fontWeight: FontWeight.w800,
                           ),
                     ),
@@ -114,7 +115,7 @@ class _ResultPageState extends ConsumerState<ResultPage> {
                       'Testni qayta ishlash yoki keyingi darsga o‘tish mumkin.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.black54,
+                            color: AppColors.textSecondary,
                           ),
                     ),
                   ],

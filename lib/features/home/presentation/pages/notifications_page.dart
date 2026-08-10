@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di/providers.dart';
@@ -98,7 +99,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                               _formatDate(item.sentAt),
                               style: Theme.of(
                                 context,
-                              ).textTheme.labelSmall?.copyWith(color: Colors.black54),
+                              ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
                             ),
                           ],
                         ),

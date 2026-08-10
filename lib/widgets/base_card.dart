@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/design_system.dart';
 
 class BaseCard extends StatelessWidget {
   const BaseCard({
@@ -49,17 +50,17 @@ class BaseCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.videocam_outlined,
                           size: 16,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           videoCountText,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Colors.black54,
+                                color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -68,7 +69,7 @@ class BaseCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.black45),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
             ],
           ),
         ),

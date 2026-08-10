@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/design_system.dart';
 
 class OptionButton extends StatelessWidget {
   const OptionButton({
@@ -55,7 +56,7 @@ class OptionButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                     ),
               ),
             ),

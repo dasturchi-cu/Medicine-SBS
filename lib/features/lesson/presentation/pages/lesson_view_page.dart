@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../../../../core/theme/design_system.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -175,7 +176,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
         title: const Text('Dars tafsiloti'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: _confirmAndLeave,
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(44),
@@ -185,7 +186,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
             child: TabBar(
               controller: _tabController,
               labelColor: const Color(0xFF1E6BB8),
-              unselectedLabelColor: Colors.black54,
+              unselectedLabelColor: AppColors.textSecondary,
               indicatorColor: const Color(0xFF1E6BB8),
               labelStyle: const TextStyle(fontWeight: FontWeight.w800),
               tabs: const [
@@ -257,7 +258,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
                   lesson.transcriptUz,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     height: 1.35,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -388,6 +389,21 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
     } finally {
       _syncingWatch = false;
     }
+  }
+
+  Future<void> _confirmAndLeave() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Darsdan chiqish'),
+        content: const Text('Rostan ham darsdan chiqasizmi?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Yoq')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Ha')),
+        ],
+      ),
+    );
+    if (leave == true && mounted) context.pop();
   }
 
   Future<void> _ensureInitialWatchProgressLoaded(String courseId) async {

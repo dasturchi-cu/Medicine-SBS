@@ -62,6 +62,46 @@ def sync_user_rank_from_video_progress(client: Client, *, user_id: str) -> None:
 
 _VALID_PERIODS = {"daily", "weekly", "monthly", "yearly", "overall"}
 
+_SCHEMA_ENSURED = False
+
+
+def _ensure_ranking_schema(client: Client) -> None:
+    """daily_study_log.source ustuni + ranking_by_period(p_source bilan) mavjudligini
+    kafolatlaydi. Shunday qilib Pomodoro reytingi FAQAT pomodoro sessiyalarini,
+    video reytingi faqat videoni hisoblaydi (source bo'yicha filtr)."""
+    global _SCHEMA_ENSURED
+    if _SCHEMA_ENSURED:
+        return
+    try:
+        client.execute_sql(
+            "ALTER TABLE public.daily_study_log ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'video'"
+        )
+        client.execute_sql("DROP FUNCTION IF EXISTS public.ranking_by_period(date, integer, text)")
+        client.execute_sql(
+            """
+            CREATE FUNCTION public.ranking_by_period(p_since date, p_limit integer, p_source text)
+            RETURNS TABLE (user_id uuid, full_name text, seconds bigint, rnk bigint)
+            LANGUAGE sql STABLE AS $func$
+              SELECT d.user_id,
+                     coalesce(u.full_name, 'Foydalanuvchi') AS full_name,
+                     sum(d.seconds)::bigint AS seconds,
+                     row_number() over (order by sum(d.seconds) desc) AS rnk
+              FROM public.daily_study_log d
+              LEFT JOIN public.users u ON u.id = d.user_id
+              WHERE d.study_date >= p_since
+                AND (p_source IS NULL OR d.source = p_source)
+              GROUP BY d.user_id, u.full_name
+              HAVING sum(d.seconds) > 0
+              ORDER BY seconds DESC
+              LIMIT p_limit;
+            $func$
+            """
+        )
+    except Exception:
+        pass
+    finally:
+        _SCHEMA_ENSURED = True
+
 
 def _period_start(period: str) -> date | None:
     """Davr boshlanish sanasi (Asia/Tashkent, UTC+5). `overall` uchun None (butun tarix)."""
@@ -113,8 +153,13 @@ def _list_ranking_period(
 def list_ranking(
     client: Client, *, limit: int = 50, period: str = "overall", source: str | None = None
 ) -> list[RankingItem]:
+    _ensure_ranking_schema(client)
     period = period if period in _VALID_PERIODS else "overall"
     since = _period_start(period)
+    # overall + source (masalan Pomodoro): butun tarixni daily_study_log'dan, source bo'yicha
+    # o'qiymiz — aks holda user_ranks (faqat video) qaytib, pomodoro reytingiga video qo'shilardi.
+    if since is None and source:
+        since = date(1970, 1, 1)
     if since is not None:
         return _list_ranking_period(client, since=since, limit=limit, source=source)
     ranks_resp = (

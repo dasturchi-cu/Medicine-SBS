@@ -11,6 +11,7 @@ import '../../../../core/services/auth_service.dart';
 import '../../../../core/state/purchase_controller.dart';
 import '../../../../core/state/progress_controller.dart';
 import '../../../../core/theme/design_system.dart';
+import '../../../../core/theme/theme_controller.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -232,6 +233,16 @@ class ProfilePage extends ConsumerWidget {
                       },
                     ),
                   ),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: Icon(
+                    ref.watch(themeControllerProvider) ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                  ),
+                  title: const Text('Tun rejimi'),
+                  subtitle: Text(ref.watch(themeControllerProvider) ? 'Yoqilgan' : "O'chirilgan"),
+                  value: ref.watch(themeControllerProvider),
+                  onChanged: (v) => ref.read(themeControllerProvider.notifier).toggle(v),
                 ),
               ],
             ),
