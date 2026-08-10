@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
@@ -26,7 +25,6 @@ class BookReaderPage extends ConsumerStatefulWidget {
 class _BookReaderPageState extends ConsumerState<BookReaderPage>
     with WidgetsBindingObserver {
   static const int _saveEveryPages = 3;
-  static const int _maxForwardJumpPages = 2;
   final PdfViewerController _pdfController = PdfViewerController();
   int _lastPage = 1;
   int _initialPage = 1;
@@ -47,7 +45,6 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _protectScreen();
   }
 
   @override
@@ -55,7 +52,6 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
     _debounce?.cancel();
     unawaited(_flushProgressNow());
     WidgetsBinding.instance.removeObserver(this);
-    _clearScreenProtection();
     _pdfController.dispose();
     super.dispose();
   }
@@ -94,8 +90,8 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
               ? SfPdfViewer.file(
                   file,
                   controller: _pdfController,
-                  canShowScrollHead: false,
-                  canShowScrollStatus: false,
+                  canShowScrollHead: true,
+                  canShowScrollStatus: true,
                   enableTextSelection: false,
                   canShowPaginationDialog: false,
                   onDocumentLoaded: (details) {
@@ -106,8 +102,8 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
               : SfPdfViewer.network(
                   _loadedUrl!,
                   controller: _pdfController,
-                  canShowScrollHead: false,
-                  canShowScrollStatus: false,
+                  canShowScrollHead: true,
+                  canShowScrollStatus: true,
                   enableTextSelection: false,
                   canShowPaginationDialog: false,
                   onDocumentLoaded: (details) {
@@ -136,8 +132,8 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
           SfPdfViewer.memory(
             snapshot.data!,
             controller: _pdfController,
-            canShowScrollHead: false,
-            canShowScrollStatus: false,
+            canShowScrollHead: true,
+            canShowScrollStatus: true,
             enableTextSelection: false,
             canShowPaginationDialog: false,
             onDocumentLoaded: (details) {
@@ -265,20 +261,7 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
 
   void _onPageChanged(PdfPageChangedDetails details) {
     final nextPage = details.newPageNumber;
-    final maxAllowed = _maxReachedPage + _maxForwardJumpPages;
-    if (!_restoringProgress && nextPage > maxAllowed) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _pdfController.jumpToPage(_maxReachedPage);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Sahifalarni ketma-ket o'qing. Juda uzoqqa sakrash bloklandi."),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      });
-      return;
-    }
+    // Erkin varaqlash — istalgan betga tez surish mumkin (scrollbar bilan).
     _lastPage = nextPage;
     if (_lastPage > _maxReachedPage) {
       _maxReachedPage = _lastPage;
@@ -316,17 +299,4 @@ class _BookReaderPageState extends ConsumerState<BookReaderPage>
     await _saveProgress(_lastPage);
   }
 
-  Future<void> _protectScreen() async {
-    if (kIsWeb || !Platform.isAndroid) return;
-    try {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-    } catch (_) {}
-  }
-
-  Future<void> _clearScreenProtection() async {
-    if (kIsWeb || !Platform.isAndroid) return;
-    try {
-      await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
-    } catch (_) {}
-  }
 }

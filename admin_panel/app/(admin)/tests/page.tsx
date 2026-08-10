@@ -9,6 +9,7 @@ import { StatusModal } from "@/components/status-modal";
 import { AppTable } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   createTest,
@@ -26,6 +27,69 @@ import { fetchLessons, type LessonItem } from "@/lib/api/lessons";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useStatusModal } from "@/lib/use-status-modal";
+
+type ParsedQuestion = {
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: "A" | "B" | "C" | "D";
+};
+
+// Word/Google Docs'dan ko'chirilgan matnni savollarga ajratadi.
+// Format: savol, keyin variantlar; to'g'ri javob "+", boshqalari "-" bilan.
+// Savollar orasida bo'sh qator. "A)" / "1)" kabi belgilar avtomatik tozalanadi.
+function parseQuizText(text: string): ParsedQuestion[] {
+  const blocks = text
+    .replace(/\r/g, "")
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const letters: Array<"A" | "B" | "C" | "D"> = ["A", "B", "C", "D"];
+  const out: ParsedQuestion[] = [];
+  blocks.forEach((block, bi) => {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length < 3) {
+      throw new Error(`${bi + 1}-savol: savol va kamida 2 ta variant kerak.`);
+    }
+    const question = lines[0].replace(/^\d+[).]\s*/, "").trim();
+    const opts: string[] = [];
+    let correctIndex = -1;
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const isCorrect = line.startsWith("+") || line.startsWith("*");
+      const isWrong = line.startsWith("-");
+      if (!isCorrect && !isWrong) {
+        throw new Error(`${bi + 1}-savol: variant "+" (to'g'ri) yoki "-" bilan boshlanishi kerak: "${line}"`);
+      }
+      const val = line
+        .slice(1)
+        .trim()
+        .replace(/^[A-Za-zА-Яа-я]\)\s*/, "")
+        .replace(/^\d+[).]\s*/, "")
+        .trim();
+      if (isCorrect) correctIndex = opts.length;
+      opts.push(val);
+    }
+    if (opts.length < 2 || opts.length > 4) {
+      throw new Error(`${bi + 1}-savol: 2 tadan 4 tagacha variant bo'lishi kerak (hozir ${opts.length}).`);
+    }
+    if (correctIndex < 0) {
+      throw new Error(`${bi + 1}-savol: to'g'ri javob "+" bilan belgilanmagan.`);
+    }
+    out.push({
+      question_text: question,
+      option_a: opts[0] ?? "",
+      option_b: opts[1] ?? "",
+      option_c: opts[2] ?? "",
+      option_d: opts[3] ?? "",
+      correct_option: letters[correctIndex],
+    });
+  });
+  if (out.length === 0) throw new Error("Hech qanday savol topilmadi.");
+  return out;
+}
 
 export default function TestsPage() {
   const [courses, setCourses] = useState<CourseItem[]>([]);
@@ -61,6 +125,8 @@ export default function TestsPage() {
     correct_option: "A" as "A" | "B" | "C" | "D",
     order_no: "1",
   });
+  const [importText, setImportText] = useState("");
+  const [importing, setImporting] = useState(false);
   const statusModal = useStatusModal();
   const runStatus = statusModal.run;
 
@@ -253,6 +319,40 @@ export default function TestsPage() {
       });
   };
 
+  const onImportQuestions = async () => {
+    if (!selectedTestId) {
+      notifyError("Avval test tanlang.");
+      return;
+    }
+    let parsed: ParsedQuestion[];
+    try {
+      parsed = parseQuizText(importText);
+    } catch (error) {
+      notifyError(error instanceof Error ? error.message : "Matnni o'qib bo'lmadi.");
+      return;
+    }
+    setImporting(true);
+    try {
+      const added: TestQuestionItem[] = [];
+      const base = questions.length;
+      for (let i = 0; i < parsed.length; i++) {
+        const item = await createTestQuestion(selectedTestId, {
+          ...parsed[i],
+          order_no: base + i + 1,
+        });
+        added.push(item);
+      }
+      setQuestions((prev) => [...prev, ...added].sort((a, b) => a.order_no - b.order_no));
+      setTests((prev) => prev.map((t) => (t.id === selectedTestId ? { ...t, question_count: t.question_count + added.length } : t)));
+      setImportText("");
+      notifySuccess(`${added.length} ta savol import qilindi.`);
+    } catch (error) {
+      notifyError(error instanceof Error ? error.message : "Import paytida xatolik (ba'zi savollar qo'shilgan bo'lishi mumkin).");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const onUpdateQuestion = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editQuestion) return;
@@ -392,6 +492,26 @@ export default function TestsPage() {
           </select>
         </div>
       </AppForm>
+
+      <div className="surface-card space-y-3 p-4 sm:p-6">
+        <div>
+          <h3 className="text-base font-semibold text-slate-900">Savollarni matndan import qilish</h3>
+          <p className="text-sm text-slate-500">
+            Word / Google Docs&apos;dan ko&apos;chiring. Har savol: birinchi qator — savol, keyingi qatorlar — variantlar.
+            To&apos;g&apos;ri javob <b>+</b> bilan, boshqalari <b>-</b> bilan. Savollar orasida bo&apos;sh qator qoldiring.
+          </p>
+        </div>
+        <Textarea
+          rows={10}
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          placeholder={"Yurak necha kamerali?\n+4 ta\n-2 ta\n-3 ta\n-5 ta\n\nBош miya qismi qaysi?\n-Jigar\n+Bosh miya\n-Buyrak"}
+          className="min-h-48 rounded-xl border-slate-200 font-mono text-sm"
+        />
+        <Button type="button" onClick={onImportQuestions} disabled={importing || !selectedTestId} className="h-10 rounded-xl">
+          {importing ? "Import qilinmoqda..." : "Matndan import qilish"}
+        </Button>
+      </div>
 
       <AppTable columns={questionColumns} data={visibleQuestions} emptyText="Bu testda savol yo&apos;q." />
 
