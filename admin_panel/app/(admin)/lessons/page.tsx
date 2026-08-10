@@ -18,6 +18,25 @@ import { createLesson, fetchLessons, removeLesson, updateLesson, type LessonItem
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { useStatusModal } from "@/lib/use-status-modal";
 
+// "mm:ss" yoki "12" (daqiqa) formatini sekundga aylantiradi.
+function parseDurationToSec(input: string): number {
+  const s = (input || "").trim();
+  if (!s) return 0;
+  if (s.includes(":")) {
+    const [m, sec] = s.split(":");
+    return (Number(m) || 0) * 60 + (Number(sec) || 0);
+  }
+  return Math.round((Number(s) || 0) * 60);
+}
+
+// Sekundni "mm:ss" ko'rinishiga (tahrirlashda ko'rsatish uchun).
+function formatSecToMMSS(sec: number): string {
+  if (!sec || sec <= 0) return "";
+  const m = Math.floor(sec / 60).toString().padStart(2, "0");
+  const s = (sec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 export default function LessonsPage() {
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [lessons, setLessons] = useState<LessonItem[]>([]);
@@ -28,12 +47,14 @@ export default function LessonsPage() {
   const [formValues, setFormValues] = useState({
     title: "",
     videoId: "",
+    duration: "",
     order: "1",
     isFree: false,
   });
   const [editValues, setEditValues] = useState({
     title: "",
     videoId: "",
+    duration: "",
     order: "1",
     isFree: false,
   });
@@ -92,6 +113,7 @@ export default function LessonsPage() {
                 setEditValues({
                   title: item.title,
                   videoId: item.videoId,
+                  duration: formatSecToMMSS(source.duration_sec),
                   order: String(item.order),
                   isFree: item.isFree,
                 });
@@ -144,13 +166,14 @@ export default function LessonsPage() {
           course_id: selectedCourse,
           title: formValues.title.trim(),
           video_url: formValues.videoId.trim(),
+          duration_sec: parseDurationToSec(formValues.duration),
           order_no: lessonOrder,
           is_free: formValues.isFree,
         }),
       });
       setLessons((prev) => [...prev, created]);
       notifySuccess(`${lessonOrder}-chi video muvaffaqiyatli qo'shildi.`);
-      setFormValues((prev) => ({ ...prev, title: "", videoId: "", order: "1", isFree: false }));
+      setFormValues((prev) => ({ ...prev, title: "", videoId: "", duration: "", order: "1", isFree: false }));
     } catch (error) {
       notifyError(error instanceof Error ? error.message : "Dars qo'shilmadi.");
     }
@@ -177,6 +200,7 @@ export default function LessonsPage() {
           course_id: selectedCourse || editLesson.course_id,
           title: editValues.title.trim(),
           video_url: editValues.videoId.trim(),
+          duration_sec: parseDurationToSec(editValues.duration),
           order_no: lessonOrder,
           is_free: editValues.isFree,
         }),
@@ -243,6 +267,17 @@ export default function LessonsPage() {
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="duration">Video davomiyligi (mm:ss yoki daqiqa)</Label>
+            <Input
+              id="duration"
+              value={formValues.duration}
+              onChange={(event) => setFormValues((prev) => ({ ...prev, duration: event.target.value }))}
+              placeholder="Masalan: 12:34 yoki 12"
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="order">Bu nechanchi dars (order)</Label>
             <Input
               id="order"
@@ -288,6 +323,16 @@ export default function LessonsPage() {
               id="edit_video"
               value={editValues.videoId}
               onChange={(event) => setEditValues((prev) => ({ ...prev, videoId: event.target.value }))}
+              className="h-11 rounded-xl border-slate-200"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="edit_duration">Video davomiyligi (mm:ss yoki daqiqa)</Label>
+            <Input
+              id="edit_duration"
+              value={editValues.duration}
+              onChange={(event) => setEditValues((prev) => ({ ...prev, duration: event.target.value }))}
+              placeholder="Masalan: 12:34 yoki 12"
               className="h-11 rounded-xl border-slate-200"
             />
           </div>

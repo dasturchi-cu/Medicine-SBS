@@ -77,6 +77,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
   bool _syncingWatch = false;
   int _initialWatchedSec = 0;
   bool _loadingInitialProgress = false;
+  bool _progressChecked = false;
   String? _loadedProgressKey;
 
   @override
@@ -189,7 +190,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
               labelStyle: const TextStyle(fontWeight: FontWeight.w800),
               tabs: const [
                 Tab(text: 'Video'),
-                Tab(text: 'Slaydshou'),
+                Tab(text: 'Taqdimot'),
               ],
             ),
           ),
@@ -205,10 +206,18 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
                 if (courseId != null) {
                   _ensureInitialWatchProgressLoaded(courseId);
                 }
+                // Progress yuklanmaguncha pleyerni qurmaymiz — aks holda 0 dan
+                // boshlab, keyin qayta yaratilib "boshiga qaytardi". Yuklab bo'lgach
+                // barqaror key bilan bir marta to'g'ri joydan quramiz.
+                final progressReady = courseId == null || _progressChecked;
+                if (!progressReady) {
+                  return SizedBox(
+                    height: mediaHeight,
+                    child: const Center(child: CircularProgressIndicator()),
+                  );
+                }
                 return VideoPlayerBox(
-                  key: ValueKey(
-                    '$widget.lessonId:$_initialWatchedSec',
-                  ),
+                  key: ValueKey('video:${widget.lessonId}'),
                   url: lesson.videoUrl,
                   height: mediaHeight,
                   initialWatchedSec: _initialWatchedSec,
@@ -327,7 +336,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
                               lessonId: widget.lessonId,
                             );
                       }
-                      context.push('${AppRoutes.quiz}?id=$widget.lessonId');
+                      context.push('${AppRoutes.quiz}?id=${widget.lessonId}');
                     },
                     child: const Text(
                       'Testga o‘tish',
@@ -361,7 +370,7 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
     _lastSyncedWatchSec = watchedSec;
     try {
       debugPrint(
-        '[API][courses.view][request] courseId=$courseId lessonId=$widget.lessonId userId=$userId watchedSec=$watchedSec completed=$completed',
+        '[API][courses.view][request] courseId=$courseId lessonId=${widget.lessonId} userId=$userId watchedSec=$watchedSec completed=$completed',
       );
       final response = await http.post(
         Uri.parse('$baseUrl/api/v1/courses/$courseId/views'),
@@ -386,13 +395,13 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
     final userId = auth.userId ?? '';
     final baseUrl = getApiBaseUrl();
     if (userId.isEmpty || baseUrl.isEmpty) return;
-    final key = '$userId|$courseId|$widget.lessonId';
+    final key = '$userId|$courseId|${widget.lessonId}';
     if (_loadedProgressKey == key || _loadingInitialProgress) return;
     _loadingInitialProgress = true;
     try {
       final uri = Uri.parse(
         '$baseUrl/api/v1/courses/progress'
-        '?user_id=$userId&course_id=$courseId&lesson_id=$widget.lessonId',
+        '?user_id=$userId&course_id=$courseId&lesson_id=${widget.lessonId}',
       );
       final response = await http.get(uri);
       if (response.statusCode < 200 || response.statusCode >= 300) return;
@@ -416,6 +425,10 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
       // Silent fail: player still starts from 0 if restore failed.
     } finally {
       _loadingInitialProgress = false;
+      _loadedProgressKey = key; // qayta-qayta so'ramaslik uchun
+      if (mounted && !_progressChecked) {
+        setState(() => _progressChecked = true);
+      }
     }
   }
 }

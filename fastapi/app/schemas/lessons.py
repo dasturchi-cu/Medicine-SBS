@@ -8,6 +8,7 @@ class LessonCreate(BaseModel):
     section_id: str | None = None
     title: str = Field(min_length=1, max_length=300)
     video_url: str = ""
+    duration_sec: int = Field(default=0, ge=0)
     order_no: int = Field(default=1, ge=1)
     is_free: bool = False
 
@@ -17,6 +18,7 @@ class LessonUpdate(BaseModel):
     section_id: str | None = None
     title: str | None = None
     video_url: str | None = None
+    duration_sec: int | None = Field(default=None, ge=0)
     order_no: int | None = Field(default=None, ge=1)
     is_free: bool | None = None
 
@@ -27,6 +29,7 @@ class LessonItem(BaseModel):
     section_id: str | None
     title: str
     video_url: str
+    duration_sec: int = 0
     order_no: int
     is_free: bool
     created_at: datetime

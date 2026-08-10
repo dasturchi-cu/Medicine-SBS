@@ -25,6 +25,7 @@ def _to_item(row: dict[str, Any]) -> LessonItem:
         section_id=row.get("section_id"),
         title=str(row.get("title") or ""),
         video_url=str(row.get("video_url") or ""),
+        duration_sec=int(row.get("duration_sec") or 0),
         order_no=int(row.get("order_no") or 1),
         is_free=bool(row.get("is_free")),
         created_at=created,
@@ -52,6 +53,7 @@ def create_lesson(client: Client, payload: LessonCreate) -> LessonItem:
                 "section_id": payload.section_id,
                 "title": payload.title.strip(),
                 "video_url": payload.video_url.strip(),
+                "duration_sec": payload.duration_sec,
                 "order_no": payload.order_no,
                 "is_free": payload.is_free,
             }
@@ -66,7 +68,7 @@ def create_lesson(client: Client, payload: LessonCreate) -> LessonItem:
 
 def update_lesson(client: Client, *, lesson_id: str, payload: LessonUpdate) -> LessonItem:
     patch: dict[str, Any] = {}
-    for key in ["course_id", "section_id", "title", "video_url", "order_no", "is_free"]:
+    for key in ["course_id", "section_id", "title", "video_url", "duration_sec", "order_no", "is_free"]:
         value = getattr(payload, key)
         if value is not None:
             patch[key] = value.strip() if isinstance(value, str) else value

@@ -17,14 +17,13 @@ class TelegramService {
 
     final normalizedName = (userName ?? '').trim().isEmpty ? '-' : userName!.trim();
     final normalizedPhone = (userPhone ?? '').trim().isEmpty ? '-' : userPhone!.trim();
-    // User ID / Kurs ID ataylab yuborilmaydi — admin ism va telefon orqali topadi.
+    // Neuroscience uslubi: qisqa, User ID / Kurs ID siz — admin ism va telefon orqali topadi.
     final message = '''
-Salom admin.
-Menga shuni ochib bering, iltimos:
+Salom men shu kursni sotib olmoqchiman.
 
 Ism: $normalizedName
 Telefon: $normalizedPhone
-Nomi: "$courseName"
+Kurs nomi: "$courseName"
 ''';
     final encoded = Uri.encodeComponent(message);
     final appUri = Uri.parse(

@@ -34,6 +34,8 @@ export default function SlideAssetsPage() {
   });
   const [selectedFileName, setSelectedFileName] = useState("");
   const [selectedPreviewName, setSelectedPreviewName] = useState("");
+  const [uploadingKind, setUploadingKind] = useState<"none" | "file" | "preview">("none");
+  const [uploadPct, setUploadPct] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewInputRef = useRef<HTMLInputElement | null>(null);
   const statusModal = useStatusModal();
@@ -103,12 +105,15 @@ export default function SlideAssetsPage() {
   );
 
   const uploadAsset = async (file: File, kind: "file" | "preview") => {
+    setUploadingKind(kind);
+    setUploadPct(0);
     try {
       console.log("[slide-assets.upload]", { kind, name: file.name, size: file.size, mime: file.type });
       const uploaded = await uploadFileToSupabase({
         bucket: "content-assets",
         folder: kind === "file" ? "slides/files" : "slides/previews",
         file,
+        onProgress: setUploadPct,
       });
       if (kind === "file") {
         setForm((prev) => ({ ...prev, file_url: uploaded.publicUrl }));
@@ -120,6 +125,8 @@ export default function SlideAssetsPage() {
       notifySuccess(uploaded.storageBacked ? "Fayl yuklandi." : "Fayl vaqtincha local (data URL) saqlandi.");
     } catch (error) {
       notifyError(error instanceof Error ? error.message : "Upload xatolik.");
+    } finally {
+      setUploadingKind("none");
     }
   };
 
@@ -278,6 +285,17 @@ export default function SlideAssetsPage() {
             </div>
           ) : null}
         </div>
+        {uploadingKind !== "none" ? (
+          <div className="grid gap-1">
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>{uploadingKind === "file" ? "Fayl" : "Rasm"} yuklanmoqda...</span>
+              <span className="font-semibold">{uploadPct}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-blue-600 transition-all duration-200" style={{ width: `${uploadPct}%` }} />
+            </div>
+          </div>
+        ) : null}
       </AppForm>
 
       <AppTable columns={columns} data={items} emptyText="Slayd fayllar hali yo'q." />

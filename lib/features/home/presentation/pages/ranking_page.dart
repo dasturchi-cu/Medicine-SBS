@@ -22,7 +22,8 @@ class _RankTab {
 // uchun; emoji bilan ajratilgan.
 const List<_RankTab> _kTabs = <_RankTab>[
   _RankTab('daily', titleKey: 'tab_daily', period: 'daily', source: 'video'),
-  _RankTab('pomodoro', title: '⏱ Pomodoro', period: 'daily', source: 'pomodoro'),
+  // Pomodoro — umumiy (overall) vaqt, kunlik emas (o'chmasin).
+  _RankTab('pomodoro', title: '⏱ Pomodoro', period: 'overall', source: 'pomodoro'),
   _RankTab('weekly', titleKey: 'tab_weekly', period: 'weekly', source: 'video'),
   _RankTab('monthly', titleKey: 'tab_monthly', period: 'monthly', source: 'video'),
   _RankTab('yearly', titleKey: 'tab_yearly', period: 'yearly', source: 'video'),

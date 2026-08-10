@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -182,15 +183,57 @@ class ShellScaffold extends StatelessWidget {
     }
   }
 
+  Future<void> _handleBack(BuildContext context, int idx) async {
+    final router = GoRouter.of(context);
+    // Detail sahifa (push qilingan) bo'lsa — oddiy orqaga qaytish.
+    if (router.canPop()) {
+      router.pop();
+      return;
+    }
+    // Boshqa tabda bo'lsa — avval Menu (home)ga qaytamiz.
+    if (idx != 0) {
+      context.go(AppRoutes.home);
+      return;
+    }
+    // Home'da — ilovadan chiqishni so'raymiz.
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Chiqish'),
+        content: const Text('Ilovadan chiqmoqchimisiz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Yoq'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Ha, chiqish'),
+          ),
+        ],
+      ),
+    );
+    if (leave == true) {
+      await SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final idx = _indexForLocation();
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: idx,
-        onTap: (i) => _goTab(context, i),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context, idx);
+      },
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: AppBottomNav(
+          currentIndex: idx,
+          onTap: (i) => _goTab(context, i),
+        ),
       ),
     );
   }

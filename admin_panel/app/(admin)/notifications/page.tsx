@@ -9,6 +9,7 @@ import { StatusModal } from "@/components/status-modal";
 import { AppTable } from "@/components/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createNotification, fetchNotifications, removeNotification, type NotificationCampaign } from "@/lib/api/notifications";
 import { fetchUsers } from "@/lib/api/users";
@@ -169,12 +170,13 @@ export default function NotificationsPage() {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="message">Xabar matni</Label>
-          <Input
+          <Textarea
             id="message"
+            rows={8}
             value={formValues.message}
             onChange={(event) => setFormValues((prev) => ({ ...prev, message: event.target.value }))}
-            placeholder="Masalan: Ilovaga kirib yangi darslarni ko'ring"
-            className="h-11 rounded-xl border-slate-200"
+            placeholder={"Xabar matnini shu yerda yozing.\n\nAbzas va qatorlar (Enter) saqlanadi — ilovada aynan shunday ko'rinadi."}
+            className="min-h-40 rounded-xl border-slate-200"
           />
         </div>
         <ImagePicker

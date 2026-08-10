@@ -6,6 +6,7 @@ export interface LessonItem {
   section_id: string | null;
   title: string;
   video_url: string;
+  duration_sec: number;
   order_no: number;
   is_free: boolean;
 }
@@ -42,6 +43,7 @@ export async function createLesson(payload: {
   order_no: number;
   is_free: boolean;
   section_id?: string | null;
+  duration_sec?: number;
 }) {
   const response = await apiFetch("/api/v1/lessons", {
     method: "POST",

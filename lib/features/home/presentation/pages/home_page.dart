@@ -432,17 +432,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'Kurs',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelLarge
-                                            ?.copyWith(
-                                              color: Colors.white70,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      const SizedBox(height: AppSpacing.s8),
-                                      Text(
                                         slide.title,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,

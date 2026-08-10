@@ -33,6 +33,7 @@ export default function BooksPage() {
     price: "",
   });
   const [uploading, setUploading] = useState<"none" | "cover" | "pdf">("none");
+  const [uploadPct, setUploadPct] = useState(0);
   const [selectedCoverName, setSelectedCoverName] = useState("");
   const [selectedFileName, setSelectedFileName] = useState("");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -138,12 +139,14 @@ export default function BooksPage() {
 
   const onUpload = async (file: File, type: "cover" | "pdf") => {
     setUploading(type);
+    setUploadPct(0);
     try {
       console.log("[books.upload]", { type, name: file.name, size: file.size, mime: file.type });
       const uploaded = await uploadFileToSupabase({
         bucket: "content-assets",
         folder: type === "cover" ? "books/covers" : "books/pdf",
         file,
+        onProgress: setUploadPct,
       });
       if (type === "cover") {
         setForm((prev) => ({ ...prev, thumbnail: uploaded.publicUrl }));
@@ -323,7 +326,17 @@ export default function BooksPage() {
           <p className="text-xs text-slate-500">{selectedFileName || "Fayl tanlanmagan"}</p>
           <Input value={form.fileUrl} placeholder="Yoki fayl URL kiriting" onChange={(e) => setForm((p) => ({ ...p, fileUrl: e.target.value }))} />
         </div>
-        {uploading !== "none" ? <p className="text-sm text-slate-500">Fayl yuklanmoqda...</p> : null}
+        {uploading !== "none" ? (
+          <div className="grid gap-1">
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>{uploading === "cover" ? "Rasm" : "Fayl"} yuklanmoqda...</span>
+              <span className="font-semibold">{uploadPct}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-blue-600 transition-all duration-200" style={{ width: `${uploadPct}%` }} />
+            </div>
+          </div>
+        ) : null}
       </AppForm>
 
       <AppTable columns={columns} data={items} emptyText="Kitoblar hali yo'q." />

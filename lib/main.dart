@@ -64,6 +64,10 @@ class NeuroscienceApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           title: translate(st, 'app_name'),
           theme: AppTheme.light(),
+          // Ilova doim yorug' (light) rejimda — tizim tun rejimi yoqilса ham
+          // matn ko'rinmay qolmasin (eski Neuroscience'dagi bug takrorlanmasin).
+          darkTheme: AppTheme.light(),
+          themeMode: ThemeMode.light,
           routerConfig: router,
           locale: Locale(st.langCode),
           supportedLocales: const [Locale('uz'), Locale('ru'), Locale('en')],
