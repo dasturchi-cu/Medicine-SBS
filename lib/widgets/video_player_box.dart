@@ -1126,20 +1126,34 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
     });
   }
 
+  /// Slayd kabi HAQIQIY fullscreen: alohida qora route (AppBar/menyu qoplanadi).
+  /// Inline controller pauza qilinadi, yangi pleyer `startAt` bilan aynan o'sha
+  /// soniyadan boshlanadi — qayta yuklanish/fonda ovoz yo'q. Qaytganda inline
+  /// o'sha pozitsiyaga o'tadi.
+  Future<void> _openFullscreen() async {
+    final c = widget.controller;
+    final startSec = c.value.position.inSeconds;
+    final wasPlaying = c.value.isPlaying;
+    c.pause();
+    final resultSec = await Navigator.of(context, rootNavigator: true).push<int>(
+      MaterialPageRoute(
+        builder: (_) => _YoutubeFullscreenPage(
+          videoId: c.initialVideoId,
+          startAt: startSec,
+          autoPlay: wasPlaying,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (resultSec != null && resultSec > 0) {
+      c.seekTo(Duration(seconds: resultSec));
+    }
+    if (wasPlaying) c.play();
+  }
+
   @override
   Widget build(BuildContext context) {
     return YoutubePlayerBuilder(
-      onEnterFullScreen: () {
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      },
-      onExitFullScreen: () {
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      },
       player: YoutubePlayer(
         controller: widget.controller,
         showVideoProgressIndicator: true,
@@ -1148,15 +1162,21 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
           playedColor: Color(0xFF1E6BB8),
           handleColor: Color(0xFF1E6BB8),
         ),
-        bottomActions: const [
-          SizedBox(width: 10),
-          CurrentPosition(),
-          SizedBox(width: 8),
-          ProgressBar(isExpanded: true),
-          SizedBox(width: 8),
-          RemainingDuration(),
-          PlaybackSpeedButton(),
-          FullScreenButton(),
+        bottomActions: [
+          const SizedBox(width: 10),
+          const CurrentPosition(),
+          const SizedBox(width: 8),
+          const ProgressBar(isExpanded: true),
+          const SizedBox(width: 8),
+          const RemainingDuration(),
+          const PlaybackSpeedButton(),
+          GestureDetector(
+            onTap: _openFullscreen,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.fullscreen, color: Colors.white, size: 26),
+            ),
+          ),
         ],
       ),
       builder: (context, player) {
@@ -1216,6 +1236,194 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
           ),
         );
       },
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  YOUTUBE FULLSCREEN (alohida qora route — slayd kabi)
+// ─────────────────────────────────────────────
+
+class _YoutubeFullscreenPage extends StatefulWidget {
+  const _YoutubeFullscreenPage({
+    required this.videoId,
+    required this.startAt,
+    required this.autoPlay,
+  });
+
+  final String videoId;
+  final int startAt;
+  final bool autoPlay;
+
+  @override
+  State<_YoutubeFullscreenPage> createState() => _YoutubeFullscreenPageState();
+}
+
+class _YoutubeFullscreenPageState extends State<_YoutubeFullscreenPage> {
+  late final YoutubePlayerController _controller;
+  bool _closing = false;
+
+  // ±10s feedback
+  bool _showSeek = false;
+  bool _forward = true;
+  int _accumSec = 0;
+  Timer? _seekTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _lockLandscape();
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: YoutubePlayerFlags(
+        autoPlay: widget.autoPlay,
+        mute: false,
+        forceHD: false,
+        enableCaption: true,
+        startAt: widget.startAt, // aynan o'sha soniyadan — seekTo kerak emas
+        hideControls: false,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _seekTimer?.cancel();
+    _unlockOrientation();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _lockLandscape() async {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _unlockOrientation() async {
+    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  void _close() {
+    if (_closing) return;
+    _closing = true;
+    final sec = _controller.value.position.inSeconds;
+    Navigator.of(context).pop(sec);
+  }
+
+  void _seekBy(int seconds) {
+    final target = _controller.value.position + Duration(seconds: seconds);
+    _controller.seekTo(target.isNegative ? Duration.zero : target);
+    final forward = seconds > 0;
+    setState(() {
+      _accumSec = (_showSeek && _forward == forward)
+          ? _accumSec + seconds.abs()
+          : seconds.abs();
+      _forward = forward;
+      _showSeek = true;
+    });
+    _seekTimer?.cancel();
+    _seekTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() => _showSeek = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _close(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: YoutubePlayerBuilder(
+          player: YoutubePlayer(
+            controller: _controller,
+            showVideoProgressIndicator: true,
+            progressIndicatorColor: const Color(0xFF1E6BB8),
+            progressColors: const ProgressBarColors(
+              playedColor: Color(0xFF1E6BB8),
+              handleColor: Color(0xFF1E6BB8),
+            ),
+            bottomActions: const [
+              SizedBox(width: 12),
+              CurrentPosition(),
+              SizedBox(width: 8),
+              ProgressBar(isExpanded: true),
+              SizedBox(width: 8),
+              RemainingDuration(),
+              PlaybackSpeedButton(),
+              SizedBox(width: 8),
+            ],
+          ),
+          builder: (context, player) {
+            return Stack(
+              children: [
+                Center(child: player),
+                // ── chap/o'ng chekka 2-bosish (±10s) ──
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 56,
+                  child: LayoutBuilder(
+                    builder: (context, cns) {
+                      final zoneW = cns.maxWidth * 0.32;
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: zoneW,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onDoubleTap: () => _seekBy(-10),
+                            ),
+                          ),
+                          const Spacer(),
+                          SizedBox(
+                            width: zoneW,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onDoubleTap: () => _seekBy(10),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                if (_showSeek)
+                  Align(
+                    alignment: _forward
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: _SeekFeedback(
+                      forward: _forward,
+                      seconds: _accumSec == 0 ? 10 : _accumSec,
+                    ),
+                  ),
+                // ── chiqish tugmasi (kichraytirish) ──
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: SafeArea(
+                    child: IconButton.filledTonal(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withValues(alpha: 0.45),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: _close,
+                      icon: const Icon(Icons.fullscreen_exit),
+                      tooltip: 'Kichraytirish',
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
