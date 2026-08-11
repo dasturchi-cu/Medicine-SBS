@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: medical-backend
+    name: medicine-sbs
     runtime: python
     rootDir: backend/fastapi
     buildCommand: pip install -r requirements.txt
