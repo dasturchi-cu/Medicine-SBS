@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -935,10 +934,75 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
   late int _index;
   int? _fullscreenPdfPage;
   int? _fullscreenPdfTotal;
+  PdfViewerController? _fsPdfController;
 
   // Navigatsiya/hisoblagich — teginganda/surganda paydo bo'lib, 3s da yashiriladi.
   bool _chromeVisible = true;
   Timer? _chromeTimer;
+
+  bool _fsPrevEnabled() {
+    final slides = widget.slides;
+    if (slides.isEmpty) return false;
+    final slide = slides[_index.clamp(0, slides.length - 1)];
+    if (_slideIsPdfAsset(slide) &&
+        (_fullscreenPdfTotal ?? 0) > 1 &&
+        _fsPdfController != null) {
+      if ((_fullscreenPdfPage ?? 1) > 1) return true;
+      return slides.length > 1 && _index > 0;
+    }
+    return slides.length > 1 && _index > 0;
+  }
+
+  bool _fsNextEnabled() {
+    final slides = widget.slides;
+    if (slides.isEmpty) return false;
+    final slide = slides[_index.clamp(0, slides.length - 1)];
+    if (_slideIsPdfAsset(slide) &&
+        (_fullscreenPdfTotal ?? 0) > 1 &&
+        _fsPdfController != null) {
+      if ((_fullscreenPdfPage ?? 1) < _fullscreenPdfTotal!) return true;
+      return slides.length > 1 && _index < slides.length - 1;
+    }
+    return slides.length > 1 && _index < slides.length - 1;
+  }
+
+  void _fsPrev() {
+    _revealChrome();
+    final slides = widget.slides;
+    final slide = slides[_index.clamp(0, slides.length - 1)];
+    if (_slideIsPdfAsset(slide) &&
+        (_fullscreenPdfTotal ?? 0) > 1 &&
+        _fsPdfController != null &&
+        (_fullscreenPdfPage ?? 1) > 1) {
+      _fsPdfController!.previousPage();
+      return;
+    }
+    if (slides.length > 1 && _index > 0) {
+      _controller.previousPage(
+        duration: const Duration(milliseconds: 65),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _fsNext() {
+    _revealChrome();
+    final slides = widget.slides;
+    final slide = slides[_index.clamp(0, slides.length - 1)];
+    if (_slideIsPdfAsset(slide) &&
+        (_fullscreenPdfTotal ?? 0) > 1 &&
+        _fsPdfController != null &&
+        (_fullscreenPdfPage ?? 1) < _fullscreenPdfTotal!) {
+      _fsPdfController!.nextPage();
+      return;
+    }
+    if (slides.length > 1 && _index < slides.length - 1) {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 65),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   void _revealChrome() {
     _chromeTimer?.cancel();
@@ -995,9 +1059,6 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
     final fsNum = fsPdfKnown ? (_fullscreenPdfPage ?? 1) : (_index + 1);
     final fsDenom =
         fsPdfKnown ? _fullscreenPdfTotal! : fsSlides.length.clamp(1, 1 << 30);
-    final fsSubtitle = fsPdfKnown
-        ? '$fsNum-sahifa · jami $fsDenom ta'
-        : '${_index + 1}-chi rasm · jami ${fsSlides.length} ta';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -1019,6 +1080,7 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
                 _index = v;
                 _fullscreenPdfPage = null;
                 _fullscreenPdfTotal = null;
+                _fsPdfController = null;
               });
             },
             itemBuilder: (context, i) {
@@ -1046,6 +1108,15 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
                       url: slide.assetFileUrl!,
                       slideIndex: i,
                       isActiveDeckSlide: i == _index,
+                      onControllerReady: (slideIndex, c) {
+                        if (!mounted || slideIndex != _index) return;
+                        setState(() => _fsPdfController = c);
+                      },
+                      onControllerDisposed: (c) {
+                        if (_fsPdfController != c) return;
+                        _fsPdfController = null;
+                        if (mounted) setState(() {});
+                      },
                       onPaginationFromPdf: (slideIndex, page, totalPages) {
                         if (!mounted ||
                             slideIndex != _index ||
@@ -1162,69 +1233,42 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
                 ignoring: !_chromeVisible,
                 child: SafeArea(
               top: false,
-              minimum: const EdgeInsets.only(bottom: 4),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (fsSlides.length > 1)
-                    AnimatedSmoothIndicator(
-                      activeIndex: _index,
-                      count: fsSlides.length,
-                      effect: WormEffect(
-                        dotWidth: 8,
-                        dotHeight: 8,
-                        spacing: 7,
-                        activeDotColor: const Color(0xFF1E6BB8),
-                        dotColor:
-                            const Color(0xFF1E6BB8).withValues(alpha: 0.28),
-                      ),
-                    ),
-                  if (fsSlides.length > 1) const SizedBox(height: 10),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.94),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$fsNum / $fsDenom',
-                            style: const TextStyle(
-                              color: Color(0xFF1E6BB8),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 19,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            fsSubtitle,
-                            style: TextStyle(
-                              color: const Color(0xFF1E6BB8).withValues(
-                                alpha: 0.72,
-                              ),
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              minimum: const EdgeInsets.only(bottom: 6),
+              // Kichik (inline) holatdagi bilan bir xil ixcham dizayn: ◀ 3/12 ▶
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _SlideNavBtn(
+                        icon: Icons.chevron_left,
+                        onTap: _fsPrevEnabled() ? _fsPrev : null,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          '$fsNum / $fsDenom',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      _SlideNavBtn(
+                        icon: Icons.chevron_right,
+                        onTap: _fsNextEnabled() ? _fsNext : null,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
               ),
