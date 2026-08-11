@@ -1417,25 +1417,16 @@ class _YoutubeFullscreenPageState extends State<_YoutubeFullscreenPage> {
                       seconds: _accumSec == 0 ? 10 : _accumSec,
                     ),
                   ),
-                // ── chiqish (kichraytirish) tugmasi — doim ko'rinadi, eng ustida ──
+                // ── chiqish (kichraytirish) tugmasi — och rangli (filledTonal),
+                //    qora chekkada ham yaqqol ko'rinadi. Yuqori-chapda. ──
                 Positioned(
                   top: 10,
                   left: 10,
                   child: SafeArea(
-                    child: GestureDetector(
-                      onTap: _close,
-                      child: Container(
-                        padding: const EdgeInsets.all(9),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.fullscreen_exit,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
+                    child: IconButton.filledTonal(
+                      onPressed: _close,
+                      icon: const Icon(Icons.fullscreen_exit),
+                      tooltip: 'Kichraytirish',
                     ),
                   ),
                 ),
