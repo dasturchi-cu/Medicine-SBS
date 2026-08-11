@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api/config";
 
 // Versiya (versionCode) — har APK yangilanishida oshiring. Bu brauzer/CDN keshini
 // chetlab o'tadi, aks holda eski/buzuq nusxa yuklanib "paket invalid" chiqadi.
-const APK_VERSION = "2020";
+const APK_VERSION = "2021";
 const APK_URL = `https://pub-6ef940b147524cc6aeacec5f401192fa.r2.dev/medicine-sbs.apk?v=${APK_VERSION}`;
 const CONTENT_KEY = "app_medicine_sbs";
 

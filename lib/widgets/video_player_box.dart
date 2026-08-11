@@ -253,7 +253,6 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   Widget _buildYoutube() {
     return _YoutubeInlinePlayer(
       controller: _ytController!,
-      height: widget.height,
     );
   }
 
@@ -1089,10 +1088,9 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
 /// Ustiga chap/o'ng chekkalarda 2-bosish (±10s) qo'shilgan (markaz va pastki
 /// boshqaruv paneli teginish uchun ochiq qoladi).
 class _YoutubeInlinePlayer extends StatefulWidget {
-  const _YoutubeInlinePlayer({required this.controller, required this.height});
+  const _YoutubeInlinePlayer({required this.controller});
 
   final YoutubePlayerController controller;
-  final double height;
 
   @override
   State<_YoutubeInlinePlayer> createState() => _YoutubeInlinePlayerState();
@@ -1164,8 +1162,9 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
       builder: (context, player) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            height: widget.height,
+          // 16:9 — video butun enni egallaydi (kattaroq), tepa/past bo'shliq yo'q.
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
             child: Stack(
               children: [
                 player,

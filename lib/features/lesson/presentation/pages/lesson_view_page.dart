@@ -113,9 +113,12 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
     final courseId = repo.getCourseIdForLesson(widget.lessonId);
     final orientation = MediaQuery.orientationOf(context);
     final size = MediaQuery.sizeOf(context);
+    // Portret: video/slayd 16:9 — butun enni egallaydi (ListView gorizontal
+    // padding 16+16=32). Shu balandlik video AspectRatio bilan mos keladi,
+    // IndexedStack'da bo'sh joy qolmaydi.
     final mediaHeight = orientation == Orientation.landscape
         ? size.height * 0.78
-        : size.height * 0.46;
+        : (size.width - 32) * 9 / 16;
 
     if (lesson == null) {
       return Scaffold(
@@ -694,7 +697,12 @@ class _SlideViewerState extends State<_SlideViewer> {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
+      // Istalgan teginishda (tap yoki surish boshida) navigatsiya qayta paydo
+      // bo'ladi — Listener gesture arenaga qo'shilmaydi, swipe'ga xalaqit bermaydi.
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _revealChrome(),
+        child: SizedBox(
         height: widget.height,
         width: double.infinity,
         child: Stack(
@@ -878,6 +886,7 @@ class _SlideViewerState extends State<_SlideViewer> {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -927,6 +936,18 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
   int? _fullscreenPdfPage;
   int? _fullscreenPdfTotal;
 
+  // Navigatsiya/hisoblagich — teginganda/surganda paydo bo'lib, 3s da yashiriladi.
+  bool _chromeVisible = true;
+  Timer? _chromeTimer;
+
+  void _revealChrome() {
+    _chromeTimer?.cancel();
+    if (mounted && !_chromeVisible) setState(() => _chromeVisible = true);
+    _chromeTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _chromeVisible = false);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -938,6 +959,7 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
     _index = widget.initialIndex.clamp(0, widget.slides.length - 1);
     _controller = PageController(initialPage: _index);
     _lockLandscape();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealChrome());
   }
 
   Future<void> _lockLandscape() async {
@@ -955,6 +977,7 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
 
   @override
   void dispose() {
+    _chromeTimer?.cancel();
     _unlockOrientation();
     _controller.dispose();
     super.dispose();
@@ -978,7 +1001,10 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
+      body: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _revealChrome(),
+        child: Stack(
         children: [
           PageView.builder(
             controller: _controller,
@@ -987,11 +1013,14 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
               ClampingScrollPhysics(),
             ),
             itemCount: widget.slides.length,
-            onPageChanged: (v) => setState(() {
-              _index = v;
-              _fullscreenPdfPage = null;
-              _fullscreenPdfTotal = null;
-            }),
+            onPageChanged: (v) {
+              _revealChrome();
+              setState(() {
+                _index = v;
+                _fullscreenPdfPage = null;
+                _fullscreenPdfTotal = null;
+              });
+            },
             itemBuilder: (context, i) {
               final slide = widget.slides[i];
               final isPdf = _slideIsPdfAsset(slide);
@@ -1093,26 +1122,45 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
           Positioned(
             top: 8,
             left: 8,
-            child: IconButton.filledTonal(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close_fullscreen),
-              tooltip: 'Chiqish',
+            child: AnimatedOpacity(
+              opacity: _chromeVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: IconButton.filledTonal(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_fullscreen),
+                  tooltip: 'Chiqish',
+                ),
+              ),
             ),
           ),
           Positioned(
             bottom: 12,
             right: 12,
-            child: IconButton.filledTonal(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.fullscreen_exit),
-              tooltip: 'Kichraytirish',
+            child: AnimatedOpacity(
+              opacity: _chromeVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: IconButton.filledTonal(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.fullscreen_exit),
+                  tooltip: 'Kichraytirish',
+                ),
+              ),
             ),
           ),
           Positioned(
             bottom: 8,
             left: 0,
             right: 0,
-            child: SafeArea(
+            child: AnimatedOpacity(
+              opacity: _chromeVisible ? 1 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: SafeArea(
               top: false,
               minimum: const EdgeInsets.only(bottom: 4),
               child: Column(
@@ -1179,8 +1227,11 @@ class _FullscreenSlidePageState extends State<_FullscreenSlidePage> {
                 ],
               ),
             ),
+              ),
+            ),
           ),
         ],
+      ),
       ),
     );
   }
