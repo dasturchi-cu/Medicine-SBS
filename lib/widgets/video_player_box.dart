@@ -54,6 +54,10 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
   @override
   void initState() {
     super.initState();
+    _setupControllers();
+  }
+
+  void _setupControllers() {
     _pendingInitialSeekSec = widget.initialWatchedSec > 0
         ? widget.initialWatchedSec
         : null;
@@ -67,6 +71,7 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
           mute: false,
           forceHD: false,
           enableCaption: true,
+          hideControls: true, // custom overlay ishlatamiz — ikkilangan tugma bo'lmaydi
         ),
       )..addListener(_handleYoutubeProgress);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,15 +100,29 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
       ..addListener(_handleVideoProgress);
   }
 
+  void _teardownControllers() {
+    _emitLatestProgress();
+    _controller?.removeListener(_handleVideoProgress);
+    _ytController?.removeListener(_handleYoutubeProgress);
+    _controller?.dispose();
+    _ytController?.dispose();
+    _controller = null;
+    _ytController = null;
+    _youtubeId = null;
+  }
+
   @override
   void didUpdateWidget(covariant VideoPlayerBox oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // URL o'zgarsa — eski controllerni tashlab, yangisini quramiz,
+    // aks holda eski video yangi darsda ham davom etaveradi.
     if (oldWidget.url != widget.url) {
-      _pendingInitialSeekSec = widget.initialWatchedSec > 0
-          ? widget.initialWatchedSec
-          : null;
       _lastReportedSec = 0;
       _completedReported = false;
+      _speed = 1.0;
+      _teardownControllers();
+      _setupControllers();
+      if (mounted) setState(() {});
     }
   }
 
@@ -111,11 +130,7 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
 
   @override
   void dispose() {
-    _emitLatestProgress();
-    _controller?.removeListener(_handleVideoProgress);
-    _ytController?.removeListener(_handleYoutubeProgress);
-    _controller?.dispose();
-    _ytController?.dispose();
+    _teardownControllers();
     super.dispose();
   }
 
@@ -199,30 +214,52 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
 
   // ── fullscreen ──────────────────────────────
 
-  // Faqat native video uchun — YouTube o'z fullscreen'ini
-  // YoutubePlayerBuilder + OrientationBuilder orqali boshqaradi.
   Future<void> _openFullscreen() async {
+    if (_isYoutube) {
+      final yc = _ytController!;
+      final wasPlaying = yc.value.isPlaying;
+      final result =
+          await Navigator.of(context, rootNavigator: true)
+              .push<_FullscreenYoutubeResult>(
+        MaterialPageRoute(
+          builder: (_) => _FullscreenYoutubePage(
+            videoId: _youtubeId!,
+            startAt: yc.value.position,
+            speed: _speed,
+            volume: (_volume * 100).round(),
+            autoPlay: wasPlaying,
+          ),
+        ),
+      );
+      if (result == null || !mounted) return;
+      if (result.position > Duration.zero) yc.seekTo(result.position);
+      yc.setPlaybackRate(result.speed);
+      yc.setVolume(result.volume);
+      result.volume == 0 ? yc.mute() : yc.unMute();
+      wasPlaying && result.isPlaying ? yc.play() : yc.pause();
+      setState(() {
+        _speed = result.speed;
+        _volume = (result.volume / 100).clamp(0.0, 1.0);
+      });
+      return;
+    }
+
     final c = _controller;
     if (c == null || !c.value.isInitialized) return;
-    final wasPlaying = c.value.isPlaying;
+    // Bir xil controllerni qayta ishlatamiz — video boshdan yuklanmaydi,
+    // pozitsiya/holat uzluksiz saqlanadi.
     final result =
         await Navigator.of(context, rootNavigator: true)
             .push<_FullscreenVideoResult>(
       MaterialPageRoute(
         builder: (_) => _FullscreenVideoPage(
-          url: widget.url,
-          startAt: c.value.position,
+          controller: c,
           speed: _speed,
           volume: _volume,
-          autoPlay: wasPlaying,
         ),
       ),
     );
     if (result == null || !mounted) return;
-    await c.seekTo(result.position);
-    await c.setPlaybackSpeed(result.speed);
-    await c.setVolume(result.volume);
-    wasPlaying && result.isPlaying ? await c.play() : await c.pause();
     setState(() {
       _speed = result.speed;
       _volume = result.volume;
@@ -237,75 +274,22 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
     return _buildNative();
   }
 
-  // YouTube — to'liq native YouTube style controls.
-  // YoutubePlayerBuilder qurilma burilganda GlobalKey orqali player-ni
-  // tree'da ko'chiradi (qayta yaratmaydi) → video boshidan boshlamaydi.
   Widget _buildYoutube() {
-    return YoutubePlayerBuilder(
-      onEnterFullScreen: () {
-        // MUHIM: landscape'ga majburiy aylantiramiz — aks holda fullscreen portret
-        // bo'lib qolib, butun ekranni to'ldirmasdi.
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        SystemChrome.setPreferredOrientations(const [
-          DeviceOrientation.landscapeLeft,
-          DeviceOrientation.landscapeRight,
-        ]);
-      },
-      onExitFullScreen: () {
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-        SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-      },
-      player: YoutubePlayer(
-        controller: _ytController!,
-        // showVideoProgressIndicator olib tashlandi — bottomActions ichidagi
-        // ProgressBar bilan ikkilanmaslik uchun.
-        progressIndicatorColor: Colors.red,
-        progressColors: const ProgressBarColors(
-          playedColor: Colors.red,
-          handleColor: Colors.red,
-        ),
-        // bottomActions belgilanmagan → YouTube default native controls:
-        // play/pause, seek bar, vaqt, fullscreen, sifat tugmalari.
-        // Bu o'zimizning custom kodlarimizni olib tashlaydi.
-      ),
-      builder: (context, player) => ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          height: widget.height,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              player,
-              // Chap/o'ng ikki marta bosish: -10s / +10s (YouTube ilovasi kabi).
-              // translucent + faqat onDoubleTap -> bitta bosish/seek-bar YouTube'ga o'tadi.
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onDoubleTap: () => _seekYoutubeRelative(-10),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onDoubleTap: () => _seekYoutubeRelative(10),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: widget.height,
+        child: _VideoShell(
+          isYoutube: true,
+          ytController: _ytController!,
+          speed: _speed,
+          volume: _volume,
+          onSpeed: _setSpeed,
+          onVolume: _setVolume,
+          onFullscreen: _openFullscreen,
         ),
       ),
     );
-  }
-
-  void _seekYoutubeRelative(int seconds) {
-    final c = _ytController;
-    if (c == null) return;
-    final target = c.value.position + Duration(seconds: seconds);
-    c.seekTo(target < Duration.zero ? Duration.zero : target);
   }
 
   Widget _buildNative() {
@@ -317,6 +301,7 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
         child: c == null || !c.value.isInitialized
             ? const _LoadingIndicator()
             : _VideoShell(
+                isYoutube: false,
                 nativeController: c,
                 speed: _speed,
                 volume: _volume,
@@ -335,7 +320,9 @@ class _VideoPlayerBoxState extends State<VideoPlayerBox> {
 
 class _VideoShell extends StatefulWidget {
   const _VideoShell({
-    required this.nativeController,
+    required this.isYoutube,
+    this.nativeController,
+    this.ytController,
     required this.speed,
     required this.volume,
     required this.onSpeed,
@@ -343,7 +330,9 @@ class _VideoShell extends StatefulWidget {
     required this.onFullscreen,
   });
 
-  final VideoPlayerController nativeController;
+  final bool isYoutube;
+  final VideoPlayerController? nativeController;
+  final YoutubePlayerController? ytController;
   final double speed;
   final double volume;
   final ValueChanged<double> onSpeed;
@@ -364,7 +353,10 @@ class _VideoShellState extends State<_VideoShell>
   // seek-feedback overlay
   bool _showSeekFeedback = false;
   bool _seekForward = true;
+  int _seekAccumSec = 0; // ketma-ket bosishda yig'iladi (+10, +20, ...)
   Timer? _seekFeedbackTimer;
+
+  bool _lastPlaying = false;
 
   @override
   void initState() {
@@ -376,10 +368,25 @@ class _VideoShellState extends State<_VideoShell>
     );
     _fadeIn = CurvedAnimation(parent: _fadeAnim, curve: Curves.easeOut);
     _startHideTimer();
+    // video o'z-o'zidan play/pause bo'lganda markazdagi ikonka yangilansin
+    _lastPlaying = _isPlaying;
+    widget.nativeController?.addListener(_onPlayStateTick);
+    widget.ytController?.addListener(_onPlayStateTick);
+  }
+
+  void _onPlayStateTick() {
+    if (!mounted) return;
+    final playing = _isPlaying;
+    if (playing != _lastPlaying) {
+      _lastPlaying = playing;
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
+    widget.nativeController?.removeListener(_onPlayStateTick);
+    widget.ytController?.removeListener(_onPlayStateTick);
     _hideTimer?.cancel();
     _seekFeedbackTimer?.cancel();
     _fadeAnim.dispose();
@@ -400,19 +407,33 @@ class _VideoShellState extends State<_VideoShell>
   void _onDoubleTapRight() => _seekBy(10);
 
   void _seekBy(int seconds) {
+    final forward = seconds > 0;
     final c = widget.nativeController;
-    if (c.value.isInitialized) {
+    if (c != null && c.value.isInitialized) {
       final target = c.value.position + Duration(seconds: seconds);
       c.seekTo(target.isNegative ? Duration.zero : target);
     }
+    final yc = widget.ytController;
+    if (yc != null) {
+      final target = yc.value.position + Duration(seconds: seconds);
+      yc.seekTo(target.isNegative ? Duration.zero : target);
+    }
     setState(() {
-      _seekForward = seconds > 0;
+      // agar oldingi feedback hali ko'rinib turган bo'lsa va yo'nalish bir xil — yig'amiz
+      _seekAccumSec = (_showSeekFeedback && _seekForward == forward)
+          ? _seekAccumSec + seconds.abs()
+          : seconds.abs();
+      _seekForward = forward;
       _showSeekFeedback = true;
     });
     _seekFeedbackTimer?.cancel();
-    _seekFeedbackTimer =
-        Timer(const Duration(milliseconds: 700), () {
-      if (mounted) setState(() => _showSeekFeedback = false);
+    _seekFeedbackTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _showSeekFeedback = false;
+          _seekAccumSec = 0;
+        });
+      }
     });
     _revealControls();
   }
@@ -445,11 +466,21 @@ class _VideoShellState extends State<_VideoShell>
 
   void _togglePlay() {
     final c = widget.nativeController;
-    c.value.isPlaying ? c.pause() : c.play();
+    if (c != null) {
+      c.value.isPlaying ? c.pause() : c.play();
+    }
+    final yc = widget.ytController;
+    if (yc != null) {
+      yc.value.isPlaying ? yc.pause() : yc.play();
+    }
     _revealControls();
   }
 
-  bool get _isPlaying => widget.nativeController.value.isPlaying;
+  bool get _isPlaying {
+    if (widget.nativeController != null) return widget.nativeController!.value.isPlaying;
+    if (widget.ytController != null) return widget.ytController!.value.isPlaying;
+    return false;
+  }
 
   // ── build ────────────────────────────────────
 
@@ -461,7 +492,10 @@ class _VideoShellState extends State<_VideoShell>
         fit: StackFit.expand,
         children: [
           // ── video content ──
-          _NativeCore(controller: widget.nativeController),
+          if (widget.isYoutube)
+            _YoutubeCore(controller: widget.ytController!)
+          else
+            _NativeCore(controller: widget.nativeController!),
 
           // ── double-tap zones ──
           Row(
@@ -488,7 +522,10 @@ class _VideoShellState extends State<_VideoShell>
             Align(
               alignment:
                   _seekForward ? Alignment.centerRight : Alignment.centerLeft,
-              child: _SeekFeedback(forward: _seekForward),
+              child: _SeekFeedback(
+                forward: _seekForward,
+                seconds: _seekAccumSec == 0 ? 10 : _seekAccumSec,
+              ),
             ),
 
           // ── controls overlay ──
@@ -497,8 +534,9 @@ class _VideoShellState extends State<_VideoShell>
             child: IgnorePointer(
               ignoring: !_showControls,
               child: _ControlsOverlay(
-                isYoutube: false,
+                isYoutube: widget.isYoutube,
                 nativeController: widget.nativeController,
+                ytController: widget.ytController,
                 isPlaying: _isPlaying,
                 speed: widget.speed,
                 volume: widget.volume,
@@ -513,7 +551,8 @@ class _VideoShellState extends State<_VideoShell>
                 },
                 onFullscreen: widget.onFullscreen,
                 onSeek: (pos) {
-                  widget.nativeController.seekTo(pos);
+                  widget.nativeController?.seekTo(pos);
+                  widget.ytController?.seekTo(pos);
                   _keepAlive();
                 },
               ),
@@ -544,6 +583,24 @@ class _NativeCore extends StatelessWidget {
   }
 }
 
+class _YoutubeCore extends StatelessWidget {
+  const _YoutubeCore({required this.controller});
+  final YoutubePlayerController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return YoutubePlayerBuilder(
+      player: YoutubePlayer(
+        controller: controller,
+        showVideoProgressIndicator: false, // custom seek bar bor
+        topActions: const [],
+        bottomActions: const [],
+      ),
+      builder: (_, player) => Center(child: player),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────
 //  CONTROLS OVERLAY
 // ─────────────────────────────────────────────
@@ -552,6 +609,7 @@ class _ControlsOverlay extends StatelessWidget {
   const _ControlsOverlay({
     required this.isYoutube,
     this.nativeController,
+    this.ytController,
     required this.isPlaying,
     required this.speed,
     required this.volume,
@@ -564,6 +622,7 @@ class _ControlsOverlay extends StatelessWidget {
 
   final bool isYoutube;
   final VideoPlayerController? nativeController;
+  final YoutubePlayerController? ytController;
   final bool isPlaying;
   final double speed;
   final double volume;
@@ -604,6 +663,7 @@ class _ControlsOverlay extends StatelessWidget {
             child: _BottomBar(
               isYoutube: isYoutube,
               nativeController: nativeController,
+              ytController: ytController,
               speed: speed,
               volume: volume,
               onSpeed: onSpeed,
@@ -660,6 +720,7 @@ class _BottomBar extends StatefulWidget {
   const _BottomBar({
     required this.isYoutube,
     this.nativeController,
+    this.ytController,
     required this.speed,
     required this.volume,
     required this.onSpeed,
@@ -670,6 +731,7 @@ class _BottomBar extends StatefulWidget {
 
   final bool isYoutube;
   final VideoPlayerController? nativeController;
+  final YoutubePlayerController? ytController;
   final double speed;
   final double volume;
   final ValueChanged<double> onSpeed;
@@ -684,11 +746,19 @@ class _BottomBar extends StatefulWidget {
 class _BottomBarState extends State<_BottomBar> {
   double? _dragValue; // null = not dragging
 
-  Duration get _position =>
-      widget.nativeController?.value.position ?? Duration.zero;
+  Duration get _position {
+    if (widget.nativeController != null) {
+      return widget.nativeController!.value.position;
+    }
+    return widget.ytController?.value.position ?? Duration.zero;
+  }
 
-  Duration get _duration =>
-      widget.nativeController?.value.duration ?? Duration.zero;
+  Duration get _duration {
+    if (widget.nativeController != null) {
+      return widget.nativeController!.value.duration;
+    }
+    return widget.ytController?.metadata.duration ?? Duration.zero;
+  }
 
   String _fmt(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
@@ -701,9 +771,17 @@ class _BottomBarState extends State<_BottomBar> {
 
   @override
   Widget build(BuildContext context) {
+    // rebuild every frame for native video
     if (widget.nativeController != null) {
       return AnimatedBuilder(
         animation: widget.nativeController!,
+        builder: (context, child) => _buildBar(),
+      );
+    }
+    // for youtube, rebuild on controller changes
+    if (widget.ytController != null) {
+      return ListenableBuilder(
+        listenable: widget.ytController!,
         builder: (context, child) => _buildBar(),
       );
     }
@@ -722,7 +800,7 @@ class _BottomBarState extends State<_BottomBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── seek bar (native + youtube: youtube boshqaruvi yashirilgan) ──
+          // ── seek bar ──
           _SeekBar(
             fraction: fraction,
             onChangeStart: (v) {
@@ -742,28 +820,26 @@ class _BottomBarState extends State<_BottomBar> {
           // ── time + buttons ──
           Row(
             children: [
-              ...[
-                Text(
-                  _fmt(Duration(milliseconds: current.round())),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
+              Text(
+                _fmt(Duration(milliseconds: current.round())),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
-                const Text(
-                  ' / ',
-                  style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const Text(
+                ' / ',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              Text(
+                _fmt(dur),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
-                Text(
-                  _fmt(dur),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ],
+              ),
               const Spacer(),
               _VolumeButton(volume: widget.volume, onVolume: widget.onVolume),
               const SizedBox(width: 4),
@@ -953,32 +1029,37 @@ class _SpeedButton extends StatelessWidget {
 // ─────────────────────────────────────────────
 
 class _SeekFeedback extends StatelessWidget {
-  const _SeekFeedback({required this.forward});
+  const _SeekFeedback({required this.forward, required this.seconds});
   final bool forward;
+  final int seconds;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
+        width: 96,
+        height: 96,
+        decoration: const BoxDecoration(
           color: Colors.black54,
-          borderRadius: BorderRadius.circular(30),
+          shape: BoxShape.circle,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              forward ? Icons.forward_10_rounded : Icons.replay_10_rounded,
+              forward ? Icons.fast_forward_rounded : Icons.fast_rewind_rounded,
               color: Colors.white,
-              size: 28,
+              size: 36,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(height: 2),
             Text(
-              forward ? '+10s' : '−10s',
+              forward ? '+${seconds}s' : '−${seconds}s',
               style: const TextStyle(
-                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -1014,25 +1095,21 @@ class _LoadingIndicator extends StatelessWidget {
 
 class _FullscreenVideoPage extends StatefulWidget {
   const _FullscreenVideoPage({
-    required this.url,
-    required this.startAt,
+    required this.controller,
     required this.speed,
     required this.volume,
-    required this.autoPlay,
   });
 
-  final String url;
-  final Duration startAt;
+  final VideoPlayerController controller;
   final double speed;
   final double volume;
-  final bool autoPlay;
 
   @override
   State<_FullscreenVideoPage> createState() => _FullscreenVideoPageState();
 }
 
 class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
-  VideoPlayerController? _controller;
+  VideoPlayerController get _controller => widget.controller;
   late double _speed;
   late double _volume;
   bool _isClosing = false;
@@ -1043,22 +1120,12 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     _speed = widget.speed;
     _volume = widget.volume;
     _enterLandscape();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) async {
-        final c = _controller;
-        if (c == null || !mounted) return;
-        await c.seekTo(widget.startAt);
-        await c.setPlaybackSpeed(_speed);
-        await c.setVolume(_volume);
-        if (widget.autoPlay) await c.play();
-        if (mounted) setState(() {});
-      });
   }
 
   @override
   void dispose() {
     _exitLandscape();
-    _controller?.dispose();
+    // Controller inline pleyerga tegishli — bu yerda dispose QILINMAYDI.
     super.dispose();
   }
 
@@ -1076,10 +1143,9 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   void _close() {
     if (_isClosing) return;
     _isClosing = true;
-    final c = _controller;
     final result = _FullscreenVideoResult(
-      position: c?.value.position ?? widget.startAt,
-      isPlaying: c?.value.isPlaying ?? false,
+      position: _controller.value.position,
+      isPlaying: _controller.value.isPlaying,
       speed: _speed,
       volume: _volume,
     );
@@ -1104,23 +1170,142 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
       onPopInvokedWithResult: (didPop, result) => _close(),
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: c == null || !c.value.isInitialized
-            ? const _LoadingIndicator()
-            : _VideoShell(
-                nativeController: c,
-                speed: _speed,
-                volume: _volume,
-                onSpeed: (s) async {
-                  await c.setPlaybackSpeed(s);
-                  if (mounted) setState(() => _speed = s);
-                },
-                onVolume: (v) async {
-                  final n = v.clamp(0.0, 1.0);
-                  await c.setVolume(n);
-                  if (mounted) setState(() => _volume = n);
-                },
-                onFullscreen: _close,
-              ),
+        body: _VideoShell(
+          isYoutube: false,
+          nativeController: c,
+          speed: _speed,
+          volume: _volume,
+          onSpeed: (s) async {
+            await c.setPlaybackSpeed(s);
+            if (mounted) setState(() => _speed = s);
+          },
+          onVolume: (v) async {
+            final n = v.clamp(0.0, 1.0);
+            await c.setVolume(n);
+            if (mounted) setState(() => _volume = n);
+          },
+          onFullscreen: _close,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  FULLSCREEN  –  YOUTUBE
+// ─────────────────────────────────────────────
+
+class _FullscreenYoutubePage extends StatefulWidget {
+  const _FullscreenYoutubePage({
+    required this.videoId,
+    required this.startAt,
+    required this.speed,
+    required this.volume,
+    required this.autoPlay,
+  });
+
+  final String videoId;
+  final Duration startAt;
+  final double speed;
+  final int volume;
+  final bool autoPlay;
+
+  @override
+  State<_FullscreenYoutubePage> createState() => _FullscreenYoutubePageState();
+}
+
+class _FullscreenYoutubePageState extends State<_FullscreenYoutubePage> {
+  late final YoutubePlayerController _controller;
+  late int _volume;
+  late double _speed;
+  bool _isClosing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _volume = widget.volume;
+    _speed = widget.speed;
+    _enterLandscape();
+    _controller = YoutubePlayerController(
+      initialVideoId: widget.videoId,
+      flags: YoutubePlayerFlags(
+        autoPlay: widget.autoPlay,
+        mute: false,
+        forceHD: false,
+        hideControls: true, // custom overlay ishlatamiz
+      ),
+    );
+    _controller.setPlaybackRate(_speed);
+    _controller.setVolume(_volume);
+    _volume == 0 ? _controller.mute() : _controller.unMute();
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _controller.seekTo(widget.startAt));
+  }
+
+  @override
+  void dispose() {
+    _exitLandscape();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enterLandscape() async {
+    await SystemChrome.setPreferredOrientations(
+        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _exitLandscape() async {
+    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+
+  void _close() {
+    if (_isClosing) return;
+    _isClosing = true;
+    final result = _FullscreenYoutubeResult(
+      position: _controller.value.position,
+      isPlaying: _controller.value.isPlaying,
+      speed: _speed,
+      volume: _volume,
+    );
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    if (rootNav.canPop()) {
+      rootNav.pop(result);
+      return;
+    }
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop(result);
+      return;
+    }
+    _isClosing = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _close(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: _VideoShell(
+          isYoutube: true,
+          ytController: _controller,
+          speed: _speed,
+          volume: _volume / 100,
+          onSpeed: (s) {
+            _controller.setPlaybackRate(s);
+            if (mounted) setState(() => _speed = s);
+          },
+          onVolume: (v) {
+            final pct = (v * 100).round();
+            _controller.setVolume(pct);
+            pct == 0 ? _controller.mute() : _controller.unMute();
+            if (mounted) setState(() => _volume = pct);
+          },
+          onFullscreen: _close,
+        ),
       ),
     );
   }
@@ -1141,6 +1326,19 @@ class _FullscreenVideoResult {
   final bool isPlaying;
   final double speed;
   final double volume;
+}
+
+class _FullscreenYoutubeResult {
+  const _FullscreenYoutubeResult({
+    required this.position,
+    required this.isPlaying,
+    required this.speed,
+    required this.volume,
+  });
+  final Duration position;
+  final bool isPlaying;
+  final double speed;
+  final int volume;
 }
 
 // ─────────────────────────────────────────────
