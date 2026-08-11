@@ -1162,17 +1162,23 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
           playedColor: Color(0xFF1E6BB8),
           handleColor: Color(0xFF1E6BB8),
         ),
-        // Fullscreen tugmasi pastki panelда EMAS — yuqori-o'ngda bitta expand
-        // tugma (slayd kabi). Shunda boshqaruv panelida bitta ortiqcha ikon yo'q.
-        bottomActions: const [
-          SizedBox(width: 10),
-          CurrentPosition(),
-          SizedBox(width: 8),
-          ProgressBar(isExpanded: true),
-          SizedBox(width: 8),
-          RemainingDuration(),
-          PlaybackSpeedButton(),
-          SizedBox(width: 8),
+        // Tezlik tugmasidan keyin bitta fullscreen (katta ko'rish) ikon —
+        // tabiiy YouTube joylashuvi, boshqaruv bilan birga yashiriladi.
+        bottomActions: [
+          const SizedBox(width: 10),
+          const CurrentPosition(),
+          const SizedBox(width: 8),
+          const ProgressBar(isExpanded: true),
+          const SizedBox(width: 8),
+          const RemainingDuration(),
+          const PlaybackSpeedButton(),
+          GestureDetector(
+            onTap: _openFullscreen,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Icon(Icons.fullscreen, color: Colors.white, size: 26),
+            ),
+          ),
         ],
       ),
       builder: (context, player) {
@@ -1227,24 +1233,6 @@ class _YoutubeInlinePlayerState extends State<_YoutubeInlinePlayer> {
                       seconds: _accumSec == 0 ? 10 : _accumSec,
                     ),
                   ),
-                // ── yuqori-o'ng: bitta fullscreen (katta ko'rish) tugma.
-                //    Eng ustida — double-tap zonalari xalaqit bermaydi. ──
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: GestureDetector(
-                    onTap: _openFullscreen,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.fullscreen,
-                          color: Colors.white, size: 22),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -1361,15 +1349,24 @@ class _YoutubeFullscreenPageState extends State<_YoutubeFullscreenPage> {
               playedColor: Color(0xFF1E6BB8),
               handleColor: Color(0xFF1E6BB8),
             ),
-            bottomActions: const [
-              SizedBox(width: 12),
-              CurrentPosition(),
-              SizedBox(width: 8),
-              ProgressBar(isExpanded: true),
-              SizedBox(width: 8),
-              RemainingDuration(),
-              PlaybackSpeedButton(),
-              SizedBox(width: 8),
+            // Tezlik yonida kichraytirish (fullscreen_exit) — boshqaruv bilan
+            // birga, tabiiy YouTube joyi.
+            bottomActions: [
+              const SizedBox(width: 12),
+              const CurrentPosition(),
+              const SizedBox(width: 8),
+              const ProgressBar(isExpanded: true),
+              const SizedBox(width: 8),
+              const RemainingDuration(),
+              const PlaybackSpeedButton(),
+              GestureDetector(
+                onTap: _close,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.fullscreen_exit,
+                      color: Colors.white, size: 26),
+                ),
+              ),
             ],
           ),
           builder: (context, player) {
@@ -1378,7 +1375,7 @@ class _YoutubeFullscreenPageState extends State<_YoutubeFullscreenPage> {
                 Center(child: player),
                 // ── chap/o'ng chekka 2-bosish (±10s) ──
                 Positioned(
-                  top: 56, // yuqorida chiqish tugmasiga joy qoldiramiz
+                  top: 0,
                   left: 0,
                   right: 0,
                   bottom: 56,
@@ -1417,19 +1414,6 @@ class _YoutubeFullscreenPageState extends State<_YoutubeFullscreenPage> {
                       seconds: _accumSec == 0 ? 10 : _accumSec,
                     ),
                   ),
-                // ── chiqish (kichraytirish) tugmasi — och rangli (filledTonal),
-                //    qora chekkada ham yaqqol ko'rinadi. Yuqori-chapda. ──
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: SafeArea(
-                    child: IconButton.filledTonal(
-                      onPressed: _close,
-                      icon: const Icon(Icons.fullscreen_exit),
-                      tooltip: 'Kichraytirish',
-                    ),
-                  ),
-                ),
               ],
             );
           },
