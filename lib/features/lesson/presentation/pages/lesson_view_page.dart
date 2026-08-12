@@ -422,7 +422,20 @@ class _LessonViewPageState extends ConsumerState<LessonViewPage>
     final auth = ref.read(authControllerProvider);
     final userId = auth.userId ?? '';
     final baseUrl = getApiBaseUrl();
-    if (userId.isEmpty || baseUrl.isEmpty) return;
+    // Login qilinmagan (yoki backend yo'q) — resume progressi yo'q, lekin video
+    // baribir 0'dan ko'rsatilishi kerak. _progressChecked'ni true qilamiz,
+    // aks holda video cheksiz spinnerда qoladi. setState build fazasida
+    // chaqirilmasligi uchun post-frame'ga qo'yamiz.
+    if (userId.isEmpty || baseUrl.isEmpty) {
+      if (!_progressChecked) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_progressChecked) {
+            setState(() => _progressChecked = true);
+          }
+        });
+      }
+      return;
+    }
     final key = '$userId|$courseId|${widget.lessonId}';
     if (_loadedProgressKey == key || _loadingInitialProgress) return;
     _loadingInitialProgress = true;

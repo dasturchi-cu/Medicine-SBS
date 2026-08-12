@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -30,11 +31,103 @@ class _QuizPageState extends ConsumerState<QuizPage> {
   int _index = 0;
   final Map<String, int> _answers = {};
   final DateTime _startedAt = DateTime.now();
+  Timer? _advanceTimer;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(_loadQuiz);
+  }
+
+  @override
+  void dispose() {
+    _advanceTimer?.cancel();
+    super.dispose();
+  }
+
+  // ── navigatsiya + tanlash ──────────────────────────
+
+  void _selectAnswer(String questionId, int optionIndex) {
+    _advanceTimer?.cancel();
+    setState(() => _answers[questionId] = optionIndex);
+    // Tanlangach ko'karadi va biroz turib avtomatik keyingisiga o'tadi
+    // (oxirgi savolда o'tmaydi — u yerda "Javobni yuborish" ishlatiladi).
+    if (_index < _questions.length - 1) {
+      _advanceTimer = Timer(const Duration(milliseconds: 350), () {
+        if (mounted) setState(() => _index += 1);
+      });
+    }
+  }
+
+  void _goNext() {
+    _advanceTimer?.cancel();
+    if (_index < _questions.length - 1) setState(() => _index += 1);
+  }
+
+  void _goPrev() {
+    _advanceTimer?.cancel();
+    if (_index > 0) {
+      setState(() => _index -= 1);
+    } else {
+      context.pop();
+    }
+  }
+
+  int _firstUnansweredIndex() {
+    for (var i = 0; i < _questions.length; i++) {
+      if (_answers[_questions[i].id] == null) return i;
+    }
+    return -1;
+  }
+
+  Future<void> _submit() async {
+    _advanceTimer?.cancel();
+    final unanswered = _firstUnansweredIndex();
+    if (unanswered != -1) {
+      final answeredCount = _answers.length;
+      final left = _questions.length - answeredCount;
+      final goResult = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Testlarni to‘ldiring'),
+          content: Text(
+            'Hali $left ta savolga javob bermadingiz. '
+            'Qolganini to‘ldirasizmi yoki shu holicha yuborasizmi?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('To‘ldirish'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Baribir yuborish'),
+            ),
+          ],
+        ),
+      );
+      if (goResult != true) {
+        // To'ldirishga qaytamiz — birinchi javobsiz savolga o'tamiz.
+        if (mounted) setState(() => _index = unanswered);
+        return;
+      }
+    }
+    _finishAndShowResults();
+  }
+
+  void _finishAndShowResults() {
+    var correct = 0;
+    for (final item in _questions) {
+      final picked = _answers[item.id];
+      if (picked != null && picked == item.correctIndex) correct += 1;
+    }
+    final totalQuestions = _questions.length;
+    final score = ((correct / totalQuestions) * 100).round();
+    final seconds = DateTime.now().difference(_startedAt).inSeconds;
+    final minutes = (seconds <= 0 ? 0.0 : seconds / 60).toStringAsFixed(2);
+    context.push(
+      '${AppRoutes.result}?score=$score&total=100&quizId=$_resolvedQuizId&correct=$correct&totalQuestions=$totalQuestions&durationMin=$minutes',
+    );
   }
 
   Future<void> _loadQuiz() async {
@@ -150,69 +243,91 @@ class _QuizPageState extends ConsumerState<QuizPage> {
 
     final question = _questions[_index];
     final selected = _answers[question.id];
+    final isLast = _index == _questions.length - 1;
+    final answeredCount = _answers.length;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_quizTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          tooltip: _index > 0 ? 'Oldingi savol' : 'Chiqish',
+          onPressed: _goPrev,
         ),
+        actions: [
+          // Keyingi savolga o'tish (ko'k)
+          IconButton(
+            icon: const Icon(Icons.arrow_forward_rounded),
+            color: const Color(0xFF1E6BB8),
+            tooltip: 'Keyingi savol',
+            onPressed: isLast ? null : _goNext,
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Savol ${_index + 1} / ${_questions.length}',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Text(
-                  question.questionText,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Savol ${_index + 1} / ${_questions.length}',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
-                ),
+                      Text(
+                        '$answeredCount / ${_questions.length} belgilandi',
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Text(
+                        question.questionText,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // ── Variantlar: to'liq en, bir-birining ostida (uzun qatorlar) ──
+                  for (var i = 0; i < 4; i++) ...[
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 60),
+                      child: OptionButton(
+                        label: String.fromCharCode('A'.codeUnitAt(0) + i),
+                        text: question.options[i],
+                        selected: selected == i,
+                        onTap: () => _selectAnswer(question.id, i),
+                      ),
+                    ),
+                    if (i < 3) const SizedBox(height: 12),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: GridView.builder(
-                itemCount: 4,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.8,
-                ),
-                itemBuilder: (context, i) {
-                  final label = String.fromCharCode('A'.codeUnitAt(0) + i);
-                  final text = question.options[i];
-                  return OptionButton(
-                    label: label,
-                    text: text,
-                    selected: selected == i,
-                    onTap: () {
-                      setState(() {
-                        _answers[question.id] = i;
-                      });
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 48,
+          ),
+          // ── Javobni yuborish — doim pastda ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: SizedBox(
+              height: 50,
               width: double.infinity,
               child: FilledButton(
                 style: FilledButton.styleFrom(
@@ -221,35 +336,15 @@ class _QuizPageState extends ConsumerState<QuizPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                onPressed: () {
-                  final isLast = _index == _questions.length - 1;
-                  if (!isLast) {
-                    setState(() => _index += 1);
-                    return;
-                  }
-                  var correct = 0;
-                  for (final item in _questions) {
-                    final picked = _answers[item.id];
-                    if (picked != null && picked == item.correctIndex) {
-                      correct += 1;
-                    }
-                  }
-                  final totalQuestions = _questions.length;
-                  final score = ((correct / totalQuestions) * 100).round();
-                  final seconds = DateTime.now().difference(_startedAt).inSeconds;
-                  final minutes = (seconds <= 0 ? 0.0 : seconds / 60).toStringAsFixed(2);
-                  context.push(
-                    '${AppRoutes.result}?score=$score&total=100&quizId=$_resolvedQuizId&correct=$correct&totalQuestions=$totalQuestions&durationMin=$minutes',
-                  );
-                },
+                onPressed: _submit,
                 child: const Text(
                   'Javobni yuborish',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
