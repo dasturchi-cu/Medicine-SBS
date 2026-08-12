@@ -41,7 +41,7 @@ const features = [
 ];
 
 export function DownloadClient() {
-  const [avg, setAvg] = useState(0);
+  const [avg, setAvg] = useState(5.0);
   const [count, setCount] = useState(0);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [stars, setStars] = useState(0);
@@ -181,7 +181,7 @@ export function DownloadClient() {
               <h1 className="msbs-title">Medicine<span>:SBS</span></h1>
               <p className="msbs-sub">Tibbiyot kurslari · Abdurahmonov Tohirjon</p>
               <div className="msbs-meta">
-                <span style={{ color: "#f5a623" }}>★★★★★ <b style={{ color: "#0f2a2e" }}>{avg > 0 ? avg.toFixed(1) : "4.9"}</b></span>
+                <span style={{ color: "#f5a623" }}>★★★★★ <b style={{ color: "#0f2a2e" }}>{(avg || 5.0).toFixed(1)}</b></span>
                 <span>· Android 6.0+</span>
                 <span>· APK</span>
               </div>
@@ -205,7 +205,7 @@ export function DownloadClient() {
         <section className="msbs-card" style={{ marginTop: 16 }}>
           <h2 className="msbs-h2">Baholash va fikrlar</h2>
           <div className="msbs-bigrate">
-            <div className="msbs-bignum">{avg > 0 ? avg.toFixed(1) : "—"}</div>
+            <div className="msbs-bignum">{(avg || 5.0).toFixed(1)}</div>
             <div>
               <div style={{ color: "#f5a623", fontSize: 20 }}>
                 {"★".repeat(Math.round(avg)) || "☆☆☆☆☆"}
