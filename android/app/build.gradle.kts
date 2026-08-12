@@ -50,6 +50,11 @@ android {
                 storeFile = file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String
             }
+            // Har uchala imzo sxemasini yoqamiz. v1 (JAR) Android 6/7 uchun SHART —
+            // aks holda "package appears to be invalid" chiqadi. v2/v3 yangi Android uchun.
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
